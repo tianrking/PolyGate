@@ -197,6 +197,25 @@ docker compose up --build
 
 ## Cloudflare Workers 运行
 
+### 最重要的一点
+
+`PolyGate` 是 Cloudflare Worker，不是 Cloudflare Pages 静态站点。
+
+如果你在 Cloudflare 后台看到了这种报错：
+
+```text
+npm error enoent Could not read package.json: /opt/buildhome/repo/package.json
+```
+
+通常不是仓库里真的没有 `package.json`，而是你把它按 `Pages + build command` 的方式接进去了。
+
+正确做法是二选一：
+
+- 用 `Wrangler` 直接部署 Worker
+- 用 GitHub Actions 自动部署 Worker
+
+不推荐再走传统 Pages 的 `npm run build` 流程。
+
 ### 一键部署
 
 如果你已经把仓库推到了 GitHub，最省事的方式就是点上面的 `Deploy to Cloudflare` 按钮。
@@ -248,6 +267,54 @@ npx wrangler secret put POLYMARKET_SIGNATURE_TYPE
 
 更常见的做法是把 `POLYMARKET_SIGNATURE_TYPE` 继续放在 [wrangler.toml](/Users/w0x7ce/Downloads/Poly_Watcher/polymarket-node-http/wrangler.toml) 里，用默认的 `proxy` 模式。
 
+### GitHub Actions 自动部署
+
+仓库已经内置了自动部署工作流：
+
+- [deploy-worker.yml](/Users/w0x7ce/Downloads/Poly_Watcher/polymarket-node-http/.github/workflows/deploy-worker.yml)
+
+它会在这些场景触发：
+
+- push 到 `main`
+- GitHub Actions 手动触发
+
+工作流会先做：
+
+- `npm ci`
+- `npm run build`
+- `npm test`
+
+然后再执行 Wrangler 部署。
+
+你只需要在 GitHub 仓库里配置两个 Secrets：
+
+- `CLOUDFLARE_API_TOKEN`
+- `CLOUDFLARE_ACCOUNT_ID`
+
+其中：
+
+- `CLOUDFLARE_ACCOUNT_ID` 可以在 Cloudflare Dashboard 右侧账户信息里看到
+- `CLOUDFLARE_API_TOKEN` 建议给最小权限，只开 Workers 部署所需权限
+
+如果还要让 Worker 具备交易能力，再去 Cloudflare Worker 环境里配置：
+
+- `POLYMARKET_PRIVATE_KEY`
+- `POLYMARKET_FUNDER_ADDRESS`
+
+GitHub Secrets 和 Cloudflare Worker Secrets 不是一回事：
+
+- GitHub Secrets 用来让 CI 有权限发版
+- Cloudflare Worker Secrets 用来让运行中的 Worker 拿到私钥
+
+典型流程：
+
+1. 在 GitHub 仓库设置 `CLOUDFLARE_API_TOKEN`
+2. 在 GitHub 仓库设置 `CLOUDFLARE_ACCOUNT_ID`
+3. push 到 `main`
+4. GitHub Actions 自动把最新版本发布到 Workers
+
+如果你不想每次 push 都部署，也可以直接在 GitHub 的 `Actions` 页面手动运行 `Deploy Worker`。
+
 ### Dashboard 部署
 
 如果你不想用 CLI，也可以在 Cloudflare Dashboard 里操作：
@@ -255,9 +322,10 @@ npx wrangler secret put POLYMARKET_SIGNATURE_TYPE
 1. 打开 `Workers & Pages`
 2. 选择 `Create`
 3. 选择导入 GitHub 仓库 `tianrking/PolyGate`
-4. 构建命令留空
-5. 让 Cloudflare 直接按仓库里的 Wrangler 配置打包部署，不需要你额外写传统前端项目那种 build/deploy 命令
-6. 补齐 Variables 和 Secrets
+4. 确认你创建的是 `Worker`，不是 `Pages`
+5. 构建命令留空
+6. 让 Cloudflare 直接按仓库里的 Wrangler 配置打包部署，不需要你额外写传统前端项目那种 build/deploy 命令
+7. 补齐 Variables 和 Secrets
 
 这里最重要的是区分：
 
