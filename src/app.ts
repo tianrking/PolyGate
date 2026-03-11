@@ -67,6 +67,7 @@ export async function buildApp(): Promise<FastifyInstance> {
       redact: {
         paths: [
           "req.headers.x-polymarket-private-key",
+          "req.headers.x-polygate-token",
           "req.headers.authorization",
         ],
         censor: "[REDACTED]",

@@ -169,8 +169,8 @@ export function renderHomePageHtml(options: HomePageOptions): string {
   const tablePath = isZh ? "路径" : "Path";
   const tableDesc = isZh ? "说明" : "Description";
   const authHint = isZh
-    ? "鉴权命令需要配置 `POLYMARKET_PRIVATE_KEY`"
-    : "Auth-required commands need `POLYMARKET_PRIVATE_KEY`";
+    ? "鉴权命令需要 `POLYMARKET_PRIVATE_KEY` 和 API token"
+    : "Auth-required commands need `POLYMARKET_PRIVATE_KEY` and API token";
   const sizeHint = isZh
     ? "生产前先用小仓位做下单验证。"
     : "Use small size test orders before production scale.";
@@ -179,6 +179,7 @@ export function renderHomePageHtml(options: HomePageOptions): string {
         "<code>UNKNOWN_COMMAND</code>：从 <code>/api/v1/commands</code> 复制正确命令名",
         "<code>VALIDATION_ERROR</code>：<code>params</code> 字段名或类型不匹配",
         "<code>WALLET_REQUIRED</code>：鉴权命令缺少运行时钱包密钥",
+        "<code>API_TOKEN_REQUIRED</code>/<code>API_TOKEN_INVALID</code>：私有命令需携带有效 API token",
         "<code>UPSTREAM_ERROR</code>：上游接口超时或失败，先重试并降低并发",
         "生产建议：对交易路径启用 Access、WAF 和严格限流",
       ]
@@ -186,6 +187,7 @@ export function renderHomePageHtml(options: HomePageOptions): string {
         "<code>UNKNOWN_COMMAND</code>: verify command name from <code>/api/v1/commands</code>",
         "<code>VALIDATION_ERROR</code>: payload shape/type mismatch in <code>params</code>",
         "<code>WALLET_REQUIRED</code>: missing runtime wallet secrets for auth-required commands",
+        "<code>API_TOKEN_REQUIRED</code>/<code>API_TOKEN_INVALID</code>: include a valid API token for private commands",
         "<code>UPSTREAM_ERROR</code>: retry and reduce burst concurrency to CLOB/Gamma/Data upstreams",
         "Production: protect trading endpoints with Access, WAF, and strict rate limits",
       ];

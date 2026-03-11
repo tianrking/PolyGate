@@ -6,9 +6,10 @@
 
 ```bash
 export BASE_URL="https://polygate.bkgr.workers.dev"
+export API_TOKEN="replace-with-your-token"
 ```
 
-Write commands in this file require runtime wallet configuration.
+Write commands in this file require runtime wallet configuration and API token header.
 
 ## Approval status
 
@@ -43,6 +44,7 @@ curl -X POST "$BASE_URL/api/v1/commands/execute" \
 ```bash
 curl -X POST "$BASE_URL/api/v1/commands/execute" \
   -H 'content-type: application/json' \
+  -H "x-polygate-token: $API_TOKEN" \
   -d '{"command":"approve.set","params":{}}'
 ```
 
@@ -51,30 +53,35 @@ curl -X POST "$BASE_URL/api/v1/commands/execute" \
 ```bash
 curl -X POST "$BASE_URL/api/v1/commands/execute" \
   -H 'content-type: application/json' \
+  -H "x-polygate-token: $API_TOKEN" \
   -d '{"command":"ctf.split","params":{"conditionId":"0xbcee96a610b7f4e61e2947f6510d1a15d4ae7c961a556b014db3527975047a1a","amount":"10"}}'
 ```
 
 ```bash
 curl -X POST "$BASE_URL/api/v1/commands/execute" \
   -H 'content-type: application/json' \
+  -H "x-polygate-token: $API_TOKEN" \
   -d '{"command":"ctf.merge","params":{"conditionId":"0xbcee96a610b7f4e61e2947f6510d1a15d4ae7c961a556b014db3527975047a1a","amount":"10"}}'
 ```
 
 ```bash
 curl -X POST "$BASE_URL/api/v1/commands/execute" \
   -H 'content-type: application/json' \
+  -H "x-polygate-token: $API_TOKEN" \
   -d '{"command":"ctf.redeem","params":{"conditionId":"0xbcee96a610b7f4e61e2947f6510d1a15d4ae7c961a556b014db3527975047a1a"}}'
 ```
 
 ```bash
 curl -X POST "$BASE_URL/api/v1/commands/execute" \
   -H 'content-type: application/json' \
+  -H "x-polygate-token: $API_TOKEN" \
   -d '{"command":"ctf.redeemNegRisk","params":{"conditionId":"0xbcee96a610b7f4e61e2947f6510d1a15d4ae7c961a556b014db3527975047a1a","amounts":"10,5"}}'
 ```
 
 ## Troubleshooting
 
 - `WALLET_REQUIRED`: wallet env is not configured for write commands. Fix by setting `POLYMARKET_PRIVATE_KEY`.
+- `API_TOKEN_REQUIRED` / `API_TOKEN_INVALID`: missing or invalid token for private commands. Fix by setting `POLYGATE_API_TOKENS` and sending `x-polygate-token`.
 - `VALIDATION_ERROR`: malformed `conditionId`, `amount`, or `amounts`. Fix by using `0x` 32-byte IDs and decimal amount strings.
 - `INVALID_AMOUNT` or `INVALID_AMOUNT_PRECISION`: amount format is invalid for USDC. Fix by using positive values with max 6 decimals.
 - `UPSTREAM_ERROR` on write calls: RPC or upstream service failure. Fix by retrying, checking RPC health, and verifying chain configuration.

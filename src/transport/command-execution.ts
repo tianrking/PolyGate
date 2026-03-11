@@ -2,6 +2,7 @@ import { z } from "zod";
 
 import type { CommandRegistry } from "../commands.js";
 import type { RuntimeConfig } from "../config/schema.js";
+import { assertPrivateCommandApiToken } from "../lib/api-token.js";
 import { AppError } from "../lib/errors.js";
 import { hasWalletCredentials } from "../lib/wallet.js";
 
@@ -45,15 +46,15 @@ export async function executeCommandPayload(
   const authRequired = options?.isAuthRequired?.(command, definition.authRequired)
     ?? definition.authRequired;
 
-  if (
-    authRequired
-    && options?.config
-    && !hasWalletCredentials(headers, options.config)
-  ) {
-    throw new AppError("No wallet configured for authenticated command", {
-      statusCode: 401,
-      code: "WALLET_REQUIRED",
-    });
+  if (authRequired && options?.config) {
+    assertPrivateCommandApiToken(headers, options.config);
+
+    if (!hasWalletCredentials(headers, options.config)) {
+      throw new AppError("No wallet configured for authenticated command", {
+        statusCode: 401,
+        code: "WALLET_REQUIRED",
+      });
+    }
   }
 
   const parsedParams = definition.schema.parse(params ?? {});

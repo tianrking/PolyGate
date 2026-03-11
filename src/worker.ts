@@ -73,10 +73,18 @@ const app = new Hono<{ Bindings: WorkerBindings }>();
 app.use("*", async (c, next) => {
   const config = workerConfig(c.env);
   const origin = config.APP_CORS_ORIGIN;
+  const allowHeaders = [
+    "Content-Type",
+    "authorization",
+    "x-polymarket-private-key",
+    "x-polymarket-signature-type",
+    "x-polymarket-funder-address",
+    config.POLYGATE_API_TOKEN_HEADER,
+  ];
 
   return cors({
     origin: origin === "*" ? "*" : origin.split(",").map((value) => value.trim()),
-    allowHeaders: ["Content-Type", "x-polymarket-private-key", "x-polymarket-signature-type", "x-polymarket-funder-address"],
+    allowHeaders,
     allowMethods: ["GET", "POST", "OPTIONS"],
   })(c, next);
 });

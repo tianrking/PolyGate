@@ -8,6 +8,9 @@
 # Optional command policy
 # POLYGATE_DISABLED_COMMANDS=clob.createOrder,clob.cancelAll
 # POLYGATE_FORCE_AUTH_COMMANDS=markets.list,events.list
+# POLYGATE_REQUIRE_API_TOKEN_FOR_PRIVATE=true
+# POLYGATE_API_TOKENS=token-dev-1,token-prod-2
+# POLYGATE_API_TOKEN_HEADER=x-polygate-token
 
 # Optional event delivery
 # POLYGATE_WEBHOOK_URL=https://example.com/polygate/events

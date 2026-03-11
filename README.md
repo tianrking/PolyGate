@@ -49,6 +49,7 @@ This project is not a thin shell around CLI output. It provides:
 - Human-friendly homepage: `GET /`
 - Interactive homepage console for command selection, parameter editing, and live execution
 - Optional per-command policy controls (`POLYGATE_DISABLED_COMMANDS`, `POLYGATE_FORCE_AUTH_COMMANDS`)
+- Application-layer API token guard for private commands (`authRequired: true`)
 - Optional webhook delivery for command execution events
 - Public data support across Gamma, Data API, CLOB public endpoints, and Bridge
 - Authenticated trading and account commands through `@polymarket/clob-client`
@@ -67,6 +68,7 @@ This project is not a thin shell around CLI output. It provides:
 - `Dedicated docs/ command cookbook`: Implemented
 - `Per-command auth policy profiles`: Implemented
 - `Webhook + SSE command event delivery`: Implemented
+- `Application-layer API token auth for private commands`: Implemented
 
 ## Architecture
 
@@ -334,6 +336,31 @@ npm start
 npm test
 ```
 
+### Chain write integration tests (approve/ctf)
+
+These tests submit real on-chain transactions and are disabled by default.
+
+Required env vars:
+
+- `POLYMARKET_PRIVATE_KEY` (funded wallet)
+- `POLYGATE_CHAIN_TEST_SPLIT_CONDITION_ID` (prepared condition for split/merge)
+- `POLYGATE_CHAIN_TEST_REDEEM_CONDITION_ID` (resolved condition for redeem)
+
+Optional env vars:
+
+- `POLYGATE_CHAIN_TEST_API_TOKEN` (default: `chain-test-token`)
+- `POLYGATE_CHAIN_TEST_SPLIT_AMOUNT` (default: `0.1`)
+- `POLYGATE_CHAIN_TEST_PARTITION` (default: `1,2`)
+- `POLYGATE_CHAIN_TEST_REDEEM_INDEX_SETS` (default: `1,2`)
+- `POLYGATE_CHAIN_TEST_COLLATERAL`
+- `POLYGATE_CHAIN_TEST_PARENT_COLLECTION_ID` (default: zero bytes32)
+
+Run:
+
+```bash
+npm run test:chain
+```
+
 ### Docker
 
 ```bash
@@ -402,6 +429,9 @@ Relevant env vars:
 - `POLYMARKET_ALLOW_PRIVATE_KEY_OVERRIDE` (`false` by default)
 - `POLYGATE_DISABLED_COMMANDS` (comma-separated command blocklist)
 - `POLYGATE_FORCE_AUTH_COMMANDS` (comma-separated commands that must have wallet context)
+- `POLYGATE_REQUIRE_API_TOKEN_FOR_PRIVATE` (`true` by default)
+- `POLYGATE_API_TOKENS` (comma-separated valid API tokens for private commands)
+- `POLYGATE_API_TOKEN_HEADER` (default `x-polygate-token`)
 - `POLYGATE_WEBHOOK_URL` (optional command event receiver URL)
 - `POLYGATE_WEBHOOK_BEARER_TOKEN` (optional bearer token for webhook delivery)
 - `POLYGATE_WEBHOOK_TIMEOUT_MS` (webhook timeout, default `5000`)
@@ -412,6 +442,11 @@ Optional override headers (disabled by default):
 - `x-polymarket-private-key`
 - `x-polymarket-signature-type`
 - `x-polymarket-funder-address`
+
+Private command token headers:
+
+- `x-polygate-token` (or your configured `POLYGATE_API_TOKEN_HEADER`)
+- `Authorization: Bearer <token>`
 
 ## Curl Cookbook
 
@@ -426,6 +461,7 @@ Detailed command examples are now split into `docs/curl`:
 ## Security Notes
 
 - Keep `POLYMARKET_ALLOW_PRIVATE_KEY_OVERRIDE=false` in public environments.
+- Keep `POLYGATE_REQUIRE_API_TOKEN_FOR_PRIVATE=true` and set strong `POLYGATE_API_TOKENS`.
 - Never expose private trading routes without access control.
 - Prefer split routing for public read vs private trading.
 - For production: add Cloudflare Access, WAF, and rate rules.
@@ -445,7 +481,7 @@ Items:
 - `Implemented`: CLOB trading and account command set
 - `Implemented`: Approve and CTF execution commands
 - `Implemented`: GitHub Actions Worker deployment flow
-- `In Development`: Expanded integration tests for on-chain write commands
+- `Implemented`: Chain integration tests for `approve.set` / `ctf.split` / `ctf.merge` / `ctf.redeem` (env-gated)
 - `Implemented`: Dedicated docs command cookbook split by category
 - `Implemented`: Optional per-command auth policy profiles
 - `Planned`: Pagination helpers and richer typed SDK facade

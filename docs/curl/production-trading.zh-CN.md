@@ -9,6 +9,7 @@
 必需：
 
 - `POLYMARKET_PRIVATE_KEY`
+- `POLYGATE_API_TOKENS`（高强度 token 列表，逗号分隔）
 
 推荐：
 
@@ -19,11 +20,18 @@
 
 - `POLYMARKET_ALLOW_PRIVATE_KEY_OVERRIDE=false`
 
+下面示例默认使用：
+
+```bash
+export API_TOKEN="replace-with-your-token"
+```
+
 ## 2）交易前验证钱包上下文
 
 ```bash
 curl -X POST "$BASE_URL/api/v1/commands/execute" \
   -H 'content-type: application/json' \
+  -H "x-polygate-token: $API_TOKEN" \
   -d '{"command":"wallet.info","params":{}}'
 ```
 
@@ -32,6 +40,7 @@ curl -X POST "$BASE_URL/api/v1/commands/execute" \
 ```bash
 curl -X POST "$BASE_URL/api/v1/commands/execute" \
   -H 'content-type: application/json' \
+  -H "x-polygate-token: $API_TOKEN" \
   -d '{"command":"approve.check","params":{"address":"0xYOUR_ADDRESS"}}'
 ```
 
@@ -47,10 +56,9 @@ curl -X POST "$BASE_URL/api/v1/commands/execute" \
 
 - 用 Cloudflare Access/WAF/限流保护交易路由
 - 公开只读与私有交易分域名或分路径
-- 对 `UPSTREAM_ERROR`、`VALIDATION_ERROR`、`WALLET_REQUIRED` 建告警
+- 对 `UPSTREAM_ERROR`、`VALIDATION_ERROR`、`WALLET_REQUIRED`、`API_TOKEN_INVALID` 建告警
 
 ## 后续阅读
 
 - 链上授权与 CTF 命令：[Approve 与 CTF](./ctf.zh-CN.md)
 - 鉴权 CLOB 执行命令：[交易与鉴权命令](./trading.zh-CN.md)
-

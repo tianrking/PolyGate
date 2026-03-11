@@ -18,6 +18,12 @@ This directory provides command examples in two layers to reduce onboarding comp
 
 Each category file includes a `Troubleshooting` section with common error codes and concrete fixes.
 
+For Layer 2 private commands, also set:
+
+```bash
+export API_TOKEN="replace-with-your-token"
+```
+
 ## Base URL
 
 ```bash

@@ -18,6 +18,12 @@
 
 每个分类文档都包含 `失败排查`，给出常见错误码与修复动作。
 
+第 2 层私有命令还需要设置：
+
+```bash
+export API_TOKEN="replace-with-your-token"
+```
+
 ## 基础地址
 
 ```bash

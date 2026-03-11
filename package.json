@@ -8,6 +8,7 @@
     "build": "rm -rf dist && tsc -p tsconfig.json",
     "start": "node dist/server.js",
     "test": "vitest run",
+    "test:chain": "POLYGATE_RUN_CHAIN_INTEGRATION_TESTS=true vitest run tests/chain-write.integration.test.ts",
     "cf:dev": "wrangler dev",
     "cf:deploy": "wrangler deploy"
   },
