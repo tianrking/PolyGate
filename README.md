@@ -43,6 +43,7 @@ This project is not a thin shell around CLI output. It provides:
 - Unified command endpoint: `POST /api/v1/commands/execute`
 - Command discovery endpoint: `GET /api/v1/commands`
 - Health endpoint: `GET /health`
+- Human-friendly homepage: `GET /`
 - Public data support across Gamma, Data API, CLOB public endpoints, and Bridge
 - Authenticated trading and account commands through `@polymarket/clob-client`
 - On-chain approval and CTF command support via `viem`
@@ -232,6 +233,12 @@ Response shape:
   ]
 }
 ```
+
+### Homepage
+
+- `GET /`
+
+Returns a lightweight HTML landing page with quick usage guidance, endpoint links, and curl examples.
 
 ### Execute Command
 

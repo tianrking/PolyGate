@@ -6,12 +6,14 @@ import Fastify, { type FastifyInstance } from "fastify";
 import { buildCommandRegistry, listCommands } from "./commands.js";
 import { nodeConfig } from "./config/node.js";
 import { normalizeError } from "./lib/errors.js";
+import { renderHomePageHtml } from "./lib/homepage.js";
 import { PolymarketService } from "./services/polymarket-service.js";
 import { executeCommandPayload } from "./transport/command-execution.js";
 
 export async function buildApp(): Promise<FastifyInstance> {
   const service = new PolymarketService(nodeConfig);
   const registry = buildCommandRegistry(service);
+  const commandList = listCommands(registry);
   const app = Fastify({
     logger: {
       level: nodeConfig.LOG_LEVEL,
@@ -34,6 +36,14 @@ export async function buildApp(): Promise<FastifyInstance> {
     timeWindow: nodeConfig.RATE_LIMIT_WINDOW,
   });
 
+  app.get("/", async (_request, reply) => {
+    reply.type("text/html; charset=utf-8");
+    return renderHomePageHtml({
+      runtime: "nodejs",
+      commandCount: commandList.length,
+    });
+  });
+
   app.get("/health", async () => ({
     ok: true,
     service: "PolyGate",
@@ -41,7 +51,7 @@ export async function buildApp(): Promise<FastifyInstance> {
 
   app.get("/api/v1/commands", async () => ({
     success: true,
-    data: listCommands(registry),
+    data: commandList,
   }));
 
   app.post("/api/v1/commands/execute", async (request) => {
