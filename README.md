@@ -2,6 +2,8 @@
 
 Unified HTTP command gateway for Polymarket, designed to run cleanly on both Node.js and Cloudflare Workers.
 
+[![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/tianrking/PolyGate)
+
 这是一个基于当前目录 `polymarket-cli` 思路重构出来的 TypeScript 项目。它不是把 Rust CLI 生硬包一层壳，而是把高价值能力抽成了一个可部署的 HTTP 命令服务：
 
 - 读接口直接走 Gamma/Data/CLOB 官方 HTTP API
@@ -184,6 +186,26 @@ docker compose up --build
 
 ## Cloudflare Workers 运行
 
+### 一键部署
+
+如果你已经把仓库推到了 GitHub，最省事的方式就是点上面的 `Deploy to Cloudflare` 按钮。
+
+Cloudflare 会自动做这些事：
+
+- 从 GitHub 拉取 `PolyGate`
+- 按 [wrangler.toml](/Users/w0x7ce/Downloads/Poly_Watcher/polymarket-node-http/wrangler.toml) 创建 Worker
+- 使用仓库里的默认 `vars`
+- 给你一个 `*.workers.dev` 域名
+
+按钮部署完成后，建议立刻做两件事：
+
+1. 到 Worker 设置页补上 Secrets
+2. 访问 `/health` 和 `/api/v1/commands` 做烟测
+
+### CLI 部署
+
+如果你更喜欢命令行，流程如下。
+
 本地 Workers 调试：
 
 ```bash
@@ -196,6 +218,7 @@ npm run cf:dev
 部署到 Cloudflare：
 
 ```bash
+npx wrangler login
 npm run cf:deploy
 ```
 
@@ -205,6 +228,138 @@ npm run cf:deploy
 npx wrangler secret put POLYMARKET_PRIVATE_KEY
 npx wrangler secret put POLYMARKET_FUNDER_ADDRESS
 ```
+
+如果你需要自定义签名方式，也可以补：
+
+```bash
+npx wrangler secret put POLYMARKET_SIGNATURE_TYPE
+```
+
+更常见的做法是把 `POLYMARKET_SIGNATURE_TYPE` 继续放在 [wrangler.toml](/Users/w0x7ce/Downloads/Poly_Watcher/polymarket-node-http/wrangler.toml) 里，用默认的 `proxy` 模式。
+
+### Dashboard 部署
+
+如果你不想用 CLI，也可以在 Cloudflare Dashboard 里操作：
+
+1. 打开 `Workers & Pages`
+2. 选择 `Create`
+3. 选择导入 GitHub 仓库 `tianrking/PolyGate`
+4. 构建命令留空
+5. 让 Cloudflare 直接按仓库里的 Wrangler 配置打包部署，不需要你额外写传统前端项目那种 build/deploy 命令
+6. 补齐 Variables 和 Secrets
+
+这里最重要的是区分：
+
+- `vars`：非敏感配置，已经在 [wrangler.toml](/Users/w0x7ce/Downloads/Poly_Watcher/polymarket-node-http/wrangler.toml) 里
+- `secrets`：敏感配置，比如私钥，必须在 Dashboard 或 Wrangler Secret 里设置
+
+### 推荐的 Secrets
+
+只读模式：
+
+- 不需要任何 Secrets
+
+交易模式：
+
+- `POLYMARKET_PRIVATE_KEY`
+- `POLYMARKET_FUNDER_ADDRESS`
+
+通常不建议开启：
+
+- `POLYMARKET_ALLOW_PRIVATE_KEY_OVERRIDE=true`
+
+这个选项会允许调用方通过请求头临时注入私钥，只适合你完全控制调用方的内网环境。
+
+### 部署后验证
+
+假设 Cloudflare 返回的地址是 `https://polygate.<subdomain>.workers.dev`，可以先跑这三条：
+
+```bash
+curl https://polygate.<subdomain>.workers.dev/health
+curl https://polygate.<subdomain>.workers.dev/api/v1/commands
+curl -X POST https://polygate.<subdomain>.workers.dev/api/v1/commands/execute \
+  -H 'content-type: application/json' \
+  -d '{"command":"markets.list","params":{"limit":5}}'
+```
+
+如果你启用了交易钱包，再验证一个需要鉴权的钱包上下文命令：
+
+```bash
+curl -X POST https://polygate.<subdomain>.workers.dev/api/v1/commands/execute \
+  -H 'content-type: application/json' \
+  -d '{"command":"wallet.info","params":{}}'
+```
+
+### 更新和回滚
+
+更新部署：
+
+```bash
+git push origin main
+npm run cf:deploy
+```
+
+如果你是通过 Dashboard 连接 GitHub，也可以直接从最新提交重新部署。
+
+回滚最简单的做法不是在 Dashboard 里手工乱改，而是：
+
+1. 回到目标 git commit
+2. 重新执行 `npm run cf:deploy`
+
+这样代码和部署状态能保持一致。
+
+### 自定义域名
+
+部署完成后，你可以在 Cloudflare Dashboard 里给 Worker 绑定自己的域名，例如：
+
+- `api.polygate.app`
+- `polymarket.yourdomain.com`
+
+绑定后建议至少做两件事：
+
+- 开 Cloudflare Access 或 WAF 规则保护交易命令
+- 对公开只读接口和私有交易接口使用不同域名或不同路由
+
+### 生产建议
+
+最稳的生产形态通常是：
+
+- Cloudflare Workers 承载只读接口和低频交易
+- 私有交易命令前面加 Access / API Gateway / 自定义鉴权
+- 不把高权限钱包直接暴露给公开互联网
+
+如果你要纯公开部署，最推荐公开的还是这些命令：
+
+- `markets.*`
+- `events.*`
+- `tags.*`
+- `series.*`
+- `sports.*`
+- `data.*`
+- `clob` 下的大部分只读命令
+
+### 常见问题
+
+`deploy 后 500`
+
+- 先看 Cloudflare Worker 日志
+- 再检查 Secrets 是否缺失
+- 再检查上游 API 是否暂时超时
+
+`交易命令返回 WALLET_REQUIRED`
+
+- 说明 Worker 环境里没有 `POLYMARKET_PRIVATE_KEY`
+- 或者 funder/signature 组合不完整
+
+`请求慢`
+
+- `clob.currentRewards` 这类接口数据量本来就大
+- 读接口适合加 Cloudflare Cache 或你自己的前置缓存
+
+`为什么有些命令适合 Workers，有些更适合 Node`
+
+- Workers 很适合公开 HTTP 网关
+- 链上执行和高敏感交易如果频率高，Node 常驻服务更好调试和运维
 
 ## Cloudflare 是否真的可用
 
@@ -219,12 +374,6 @@ npx wrangler secret put POLYMARKET_FUNDER_ADDRESS
   - `POST /api/v1/commands/execute`
 
 也就是说，至少从只读链路看，Workers 版本已经是可运行状态。
-
-如果你把项目推到 GitHub，可以把下面这行放进 README 做 Cloudflare 一键部署按钮：
-
-```md
-[![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/<your-org>/<your-repo>)
-```
 
 ## HTTP 调用方式
 
