@@ -241,163 +241,129 @@ export function renderHomePageHtml(options: HomePageOptions): string {
     <meta name="description" content="PolyGate turns Polymarket capabilities into a deployable HTTP command service." />
     <style>
       :root {
-        --bg-0: #0a1223;
-        --bg-1: #111f3d;
-        --bg-2: #edf2fb;
-        --card: rgba(255, 255, 255, 0.88);
-        --card-line: rgba(173, 189, 219, 0.42);
-        --text: #10213d;
-        --muted: #4a5d7d;
-        --accent: #1f76ff;
-        --accent-strong: #0a57d5;
-        --good: #0f9f6e;
-        --warn: #ad2d4e;
+        --bg: #f2f5fb;
+        --bg-soft: #e8eef9;
+        --card: #ffffff;
+        --card-line: #d9e2f2;
+        --text: #111f39;
+        --muted: #4f5f7c;
+        --accent: #256ef1;
+        --accent-strong: #154cb5;
+        --warn: #ae2444;
+        --ok: #117c54;
       }
       * {
         box-sizing: border-box;
       }
       body {
         margin: 0;
-        font-family: "Space Grotesk", "Avenir Next", "SF Pro Display", "Segoe UI", sans-serif;
+        font-family: "Avenir Next", "SF Pro Display", "Segoe UI", sans-serif;
         color: var(--text);
         background:
-          radial-gradient(1200px 500px at 15% -10%, rgba(49, 119, 246, 0.36), transparent 60%),
-          radial-gradient(900px 460px at 100% -5%, rgba(14, 176, 208, 0.25), transparent 55%),
-          linear-gradient(185deg, var(--bg-0) 0%, var(--bg-1) 26%, var(--bg-2) 70%);
+          radial-gradient(1000px 460px at 14% -12%, rgba(74, 133, 240, 0.22), transparent 62%),
+          radial-gradient(760px 420px at 95% 0%, rgba(19, 143, 223, 0.14), transparent 60%),
+          linear-gradient(180deg, #f7f9fe 0%, var(--bg) 45%, #edf2fb 100%);
         min-height: 100vh;
       }
-      body::before {
-        content: "";
-        position: fixed;
-        inset: 0;
-        pointer-events: none;
-        opacity: 0.3;
-        background-image:
-          linear-gradient(to right, rgba(180, 202, 236, 0.16) 1px, transparent 1px),
-          linear-gradient(to bottom, rgba(180, 202, 236, 0.16) 1px, transparent 1px);
-        background-size: 28px 28px;
-      }
       .wrap {
-        position: relative;
-        z-index: 1;
-        max-width: 1220px;
+        max-width: 1160px;
         margin: 0 auto;
-        padding: 26px 18px 52px;
+        padding: 22px 16px 42px;
       }
       .hero {
-        position: relative;
-        overflow: hidden;
-        background: linear-gradient(135deg, #0c3f99 0%, #1261d9 44%, #0d9ab9 100%);
-        color: #eff6ff;
-        border-radius: 22px;
-        padding: 30px;
-        border: 1px solid rgba(201, 221, 255, 0.34);
-        box-shadow:
-          0 20px 60px rgba(8, 35, 88, 0.4),
-          inset 0 1px 0 rgba(255, 255, 255, 0.18);
-      }
-      .hero::after {
-        content: "";
-        position: absolute;
-        right: -120px;
-        top: -140px;
-        width: 380px;
-        height: 380px;
-        border-radius: 50%;
-        background: radial-gradient(circle, rgba(255, 255, 255, 0.22) 0%, transparent 68%);
-        pointer-events: none;
+        background: linear-gradient(132deg, #172a4d 0%, #1f4e93 52%, #1d79b2 100%);
+        color: #f3f8ff;
+        border-radius: 20px;
+        padding: 24px;
+        border: 1px solid rgba(194, 214, 246, 0.35);
+        box-shadow: 0 14px 34px rgba(17, 40, 86, 0.2);
       }
       .hero h1 {
         margin: 0 0 8px;
-        font-size: 38px;
-        line-height: 1.06;
+        font-size: 34px;
+        line-height: 1.08;
         letter-spacing: -0.02em;
       }
       .hero p {
         margin: 0;
-        font-size: 16px;
+        font-size: 15px;
         opacity: 0.95;
-        max-width: 900px;
+        max-width: 840px;
         line-height: 1.5;
       }
       .badges {
-        margin-top: 16px;
+        margin-top: 14px;
         display: flex;
         flex-wrap: wrap;
         gap: 8px;
       }
       .badge {
         display: inline-block;
-        background: rgba(255, 255, 255, 0.14);
-        border: 1px solid rgba(255, 255, 255, 0.34);
+        background: rgba(255, 255, 255, 0.16);
+        border: 1px solid rgba(255, 255, 255, 0.36);
         border-radius: 999px;
-        padding: 7px 12px;
+        padding: 6px 11px;
         font-size: 12px;
-        font-weight: 700;
-        letter-spacing: 0.01em;
+        font-weight: 600;
       }
       .language-switch {
-        margin-top: 16px;
+        margin-top: 14px;
         display: flex;
         flex-wrap: wrap;
         gap: 8px;
       }
       .lang-chip {
-        color: #fff;
-        border: 1px solid rgba(255, 255, 255, 0.45);
+        color: #f5f9ff;
+        border: 1px solid rgba(226, 238, 255, 0.55);
         border-radius: 999px;
-        padding: 7px 12px;
-        font-weight: 700;
+        padding: 6px 11px;
+        font-weight: 600;
         font-size: 13px;
       }
       .lang-chip.active {
-        background: rgba(255, 255, 255, 0.24);
+        background: rgba(255, 255, 255, 0.22);
       }
       .hero-actions {
-        margin-top: 14px;
+        margin-top: 12px;
         display: flex;
         flex-wrap: wrap;
         gap: 8px;
       }
       .hero-action {
-        color: #eaf3ff;
-        border: 1px solid rgba(222, 236, 255, 0.5);
-        background: rgba(11, 40, 95, 0.28);
+        color: #edf5ff;
+        border: 1px solid rgba(224, 236, 255, 0.48);
+        background: rgba(28, 59, 117, 0.32);
         border-radius: 10px;
-        padding: 8px 12px;
+        padding: 7px 11px;
         font-size: 13px;
-        font-weight: 700;
+        font-weight: 600;
       }
       .hero-action:hover {
         text-decoration: none;
-        background: rgba(255, 255, 255, 0.16);
+        background: rgba(255, 255, 255, 0.2);
       }
       .grid {
         display: grid;
-        grid-template-columns: repeat(12, minmax(0, 1fr));
+        grid-template-columns: repeat(2, minmax(0, 1fr));
         gap: 14px;
         margin-top: 14px;
       }
       .card {
-        grid-column: span 6;
         background: var(--card);
         border: 1px solid var(--card-line);
-        border-radius: 18px;
-        padding: 18px;
-        box-shadow: 0 12px 32px rgba(15, 31, 63, 0.08);
-        backdrop-filter: blur(8px);
-        transition: transform 140ms ease, box-shadow 140ms ease;
+        border-radius: 14px;
+        padding: 16px;
+        box-shadow: 0 8px 20px rgba(22, 40, 77, 0.08);
       }
       .card:hover {
-        transform: translateY(-1px);
-        box-shadow: 0 18px 34px rgba(15, 31, 63, 0.14);
+        box-shadow: 0 10px 24px rgba(22, 40, 77, 0.11);
       }
       .card.wide {
         grid-column: 1 / -1;
       }
       h2 {
         margin: 2px 0 4px;
-        font-size: 21px;
+        font-size: 19px;
         letter-spacing: -0.01em;
       }
       .section-subtitle {
@@ -417,14 +383,14 @@ export function renderHomePageHtml(options: HomePageOptions): string {
         display: inline-block;
         margin: 8px 0 7px;
         font-size: 13px;
-        font-weight: 700;
+        font-weight: 600;
         color: #2c3f5f;
       }
       .console-shell {
-        border: 1px solid #d9e3f6;
-        border-radius: 14px;
+        border: 1px solid #d6e1f2;
+        border-radius: 12px;
         padding: 14px;
-        background: linear-gradient(180deg, #f8fbff 0%, #f2f7ff 100%);
+        background: linear-gradient(180deg, #f9fbff 0%, #f1f5fd 100%);
       }
       .console-toolbar {
         display: flex;
@@ -467,10 +433,10 @@ export function renderHomePageHtml(options: HomePageOptions): string {
         align-items: center;
         gap: 6px;
         border-radius: 999px;
-        padding: 7px 11px;
+        padding: 6px 10px;
         font-size: 12px;
-        font-weight: 700;
-        border: 1px solid #cde2ff;
+        font-weight: 600;
+        border: 1px solid #cbddff;
         background: #ebf3ff;
         color: #184da9;
       }
@@ -480,47 +446,47 @@ export function renderHomePageHtml(options: HomePageOptions): string {
         color: var(--warn);
       }
       .console-status.muted {
-        background: #f3f7fe;
+        background: #f2f7fe;
         border-color: #dae3f4;
         color: #4f627f;
       }
       code {
-        background: #eff3fb;
-        border: 1px solid #dce5f4;
+        background: #edf2fb;
+        border: 1px solid #dae3f2;
         border-radius: 6px;
         padding: 2px 6px;
-        font-family: "JetBrains Mono", "SFMono-Regular", Menlo, Monaco, Consolas, monospace;
+        font-family: "SFMono-Regular", Menlo, Monaco, Consolas, monospace;
         font-size: 12px;
       }
       pre {
         margin: 0;
         overflow: auto;
-        background: linear-gradient(165deg, #0d182d 0%, #132a4e 100%);
-        color: #e6efff;
+        background: linear-gradient(160deg, #121f37 0%, #1a3053 100%);
+        color: #eaf2ff;
         border-radius: 12px;
         padding: 14px;
-        border: 1px solid #213a62;
-        font-family: "JetBrains Mono", "SFMono-Regular", Menlo, Monaco, Consolas, monospace;
+        border: 1px solid #2a436f;
+        font-family: "SFMono-Regular", Menlo, Monaco, Consolas, monospace;
         font-size: 12px;
         line-height: 1.5;
       }
       textarea {
         width: 100%;
-        min-height: 212px;
+        min-height: 200px;
         resize: vertical;
         border-radius: 10px;
-        border: 1px solid #25406a;
-        background: linear-gradient(180deg, #0b172d 0%, #0f203f 100%);
-        color: #e9f2ff;
+        border: 1px solid #2c456f;
+        background: linear-gradient(180deg, #111f35 0%, #152948 100%);
+        color: #edf4ff;
         padding: 10px;
-        font-family: "JetBrains Mono", "SFMono-Regular", Menlo, Monaco, Consolas, monospace;
+        font-family: "SFMono-Regular", Menlo, Monaco, Consolas, monospace;
         font-size: 12px;
         line-height: 1.45;
       }
       select {
         width: 100%;
         border-radius: 10px;
-        border: 1px solid #bfd1ef;
+        border: 1px solid #c5d6f0;
         padding: 10px 11px;
         font-size: 14px;
         background: #fff;
@@ -528,30 +494,31 @@ export function renderHomePageHtml(options: HomePageOptions): string {
       }
       button {
         appearance: none;
-        border: 1px solid transparent;
-        background: #eef4ff;
-        color: #123f8f;
-        font-weight: 700;
+        border: 1px solid #c7d8f4;
+        background: #f4f8ff;
+        color: #1a467f;
+        font-weight: 600;
         border-radius: 9px;
-        padding: 9px 13px;
+        padding: 8px 12px;
         font-size: 13px;
         cursor: pointer;
         transition: transform 120ms ease, box-shadow 120ms ease, background 120ms ease;
       }
       #cmd-run {
+        border-color: #2f74ec;
         background: linear-gradient(140deg, var(--accent) 0%, var(--accent-strong) 100%);
         color: #fff;
-        box-shadow: 0 8px 16px rgba(21, 91, 202, 0.32);
+        box-shadow: 0 6px 14px rgba(27, 89, 190, 0.24);
       }
       button:hover {
         transform: translateY(-1px);
       }
       #cmd-run:hover {
-        background: linear-gradient(140deg, #267eff 0%, #0f5de0 100%);
+        background: linear-gradient(140deg, #2f7df8 0%, #195bcf 100%);
       }
       #cmd-reset {
-        border-color: #c9d9f3;
-        background: #f8fbff;
+        border-color: #d0ddef;
+        background: #fbfdff;
         color: #305080;
       }
       button:disabled {
@@ -573,17 +540,17 @@ export function renderHomePageHtml(options: HomePageOptions): string {
         margin-top: 12px;
       }
       .link-chip {
-        background: #eaf2ff;
-        border: 1px solid #c9dcff;
+        background: #ecf3ff;
+        border: 1px solid #cbdfff;
         border-radius: 999px;
-        color: #124ea9;
+        color: #1552af;
         padding: 7px 12px;
-        font-weight: 700;
+        font-weight: 600;
         font-size: 13px;
       }
       .link-chip.subtle {
-        background: #f5f8ff;
-        border-color: #d9e4f8;
+        background: #f7faff;
+        border-color: #dbe6f8;
         color: #3c5a85;
       }
       table {
@@ -604,20 +571,15 @@ export function renderHomePageHtml(options: HomePageOptions): string {
       }
       .footer {
         margin-top: 18px;
-        color: #3f567b;
+        color: #415878;
         font-size: 13px;
-        background: rgba(255, 255, 255, 0.75);
-        border: 1px solid rgba(173, 189, 219, 0.42);
+        background: rgba(255, 255, 255, 0.8);
+        border: 1px solid #d3dfef;
         border-radius: 12px;
         padding: 11px 12px;
       }
       @media (max-width: 1024px) {
-        .grid {
-          grid-template-columns: repeat(6, minmax(0, 1fr));
-        }
-        .card {
-          grid-column: span 6;
-        }
+        .grid { grid-template-columns: 1fr; }
       }
       @media (max-width: 780px) {
         .wrap {
@@ -627,7 +589,7 @@ export function renderHomePageHtml(options: HomePageOptions): string {
           padding: 18px;
         }
         .hero h1 {
-          font-size: 30px;
+          font-size: 28px;
         }
         .console-main {
           grid-template-columns: 1fr;
