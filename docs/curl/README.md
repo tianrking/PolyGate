@@ -2,14 +2,21 @@
 
 [中文说明 / Chinese](./README.zh-CN.md)
 
-This directory provides command examples grouped by use case.
+This directory provides command examples in two layers to reduce onboarding complexity.
 
-## Categories
+## Layer 1: Read-Only Quickstart
 
+- [Quickstart (Read-Only)](./quickstart-readonly.md)
 - [Markets and Data](./markets.md)
 - [CLOB Public Data](./clob.md)
+
+## Layer 2: Trading Production Playbook
+
+- [Production Playbook (Trading)](./production-trading.md)
 - [Approve and CTF](./ctf.md)
 - [Trading and Authenticated CLOB](./trading.md)
+
+Each category file includes a `Troubleshooting` section with common error codes and concrete fixes.
 
 ## Base URL
 
@@ -22,4 +29,3 @@ Use local Node service:
 ```bash
 export BASE_URL="http://127.0.0.1:3107"
 ```
-

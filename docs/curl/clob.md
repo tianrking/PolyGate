@@ -75,3 +75,10 @@ curl -X POST "$BASE_URL/api/v1/commands/execute" \
   -H 'content-type: application/json' \
   -d '{"command":"clob.currentRewards","params":{}}'
 ```
+
+## Troubleshooting
+
+- `UNKNOWN_COMMAND`: command name mismatch. Fix by listing available commands first.
+- `VALIDATION_ERROR`: invalid `tokenId`, `side`, or other param fields. Fix by using exact parameter names from command metadata.
+- `UPSTREAM_ERROR` with `clob`: CLOB API issue or timeout. Fix by retrying and reducing burst traffic.
+- Slow response on `clob.currentRewards`: payload is large. Fix by treating it as heavy endpoint and adding cache on caller side.

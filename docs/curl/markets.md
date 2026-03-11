@@ -88,3 +88,10 @@ curl -X POST "$BASE_URL/api/v1/commands/execute" \
   -H 'content-type: application/json' \
   -d '{"command":"bridge.supportedAssets","params":{}}'
 ```
+
+## Troubleshooting
+
+- `UNKNOWN_COMMAND`: command name is wrong. Fix by checking `GET /api/v1/commands`.
+- `VALIDATION_ERROR`: parameter shape/type is invalid. Fix by matching the `params` schema from command metadata.
+- `UPSTREAM_ERROR` with `gamma` or `data`: upstream API is unavailable or timing out. Fix by retrying and checking network egress policy.
+- `UPSTREAM_ERROR` with `bridge`: bridge API failure or temporary rate limit. Fix by retrying with lower concurrency.

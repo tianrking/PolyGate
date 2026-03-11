@@ -94,3 +94,10 @@ curl -X POST "$BASE_URL/api/v1/commands/execute" \
   -H 'content-type: application/json' \
   -d '{"command":"clob.earnings","params":{"date":"2026-03-11"}}'
 ```
+
+## Troubleshooting
+
+- `WALLET_REQUIRED`: authenticated command without wallet. Fix by configuring runtime secrets for private key/funder.
+- `PRIVATE_KEY_OVERRIDE_DISABLED`: header override is blocked. Fix by using runtime secrets or explicitly enabling override for trusted internal use.
+- `VALIDATION_ERROR`: payload shape mismatch (for example `tokenID` typo). Fix by copying the exact command schema from `/api/v1/commands`.
+- `UPSTREAM_ERROR` with `clob`: CLOB API unavailable or timed out. Fix by retrying and reducing order burst concurrency.

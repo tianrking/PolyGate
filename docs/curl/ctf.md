@@ -71,3 +71,10 @@ curl -X POST "$BASE_URL/api/v1/commands/execute" \
   -H 'content-type: application/json' \
   -d '{"command":"ctf.redeemNegRisk","params":{"conditionId":"0xbcee96a610b7f4e61e2947f6510d1a15d4ae7c961a556b014db3527975047a1a","amounts":"10,5"}}'
 ```
+
+## Troubleshooting
+
+- `WALLET_REQUIRED`: wallet env is not configured for write commands. Fix by setting `POLYMARKET_PRIVATE_KEY`.
+- `VALIDATION_ERROR`: malformed `conditionId`, `amount`, or `amounts`. Fix by using `0x` 32-byte IDs and decimal amount strings.
+- `INVALID_AMOUNT` or `INVALID_AMOUNT_PRECISION`: amount format is invalid for USDC. Fix by using positive values with max 6 decimals.
+- `UPSTREAM_ERROR` on write calls: RPC or upstream service failure. Fix by retrying, checking RPC health, and verifying chain configuration.

@@ -71,3 +71,10 @@ curl -X POST "$BASE_URL/api/v1/commands/execute" \
   -H 'content-type: application/json' \
   -d '{"command":"ctf.redeemNegRisk","params":{"conditionId":"0xbcee96a610b7f4e61e2947f6510d1a15d4ae7c961a556b014db3527975047a1a","amounts":"10,5"}}'
 ```
+
+## 失败排查
+
+- `WALLET_REQUIRED`：写命令执行时没有钱包上下文。修复方式：配置 `POLYMARKET_PRIVATE_KEY`。
+- `VALIDATION_ERROR`：`conditionId`、`amount` 或 `amounts` 格式错误。修复方式：使用 `0x` 开头的 32 字节 ID 和十进制金额字符串。
+- `INVALID_AMOUNT` 或 `INVALID_AMOUNT_PRECISION`：金额格式不符合 USDC 精度。修复方式：使用正数，且最多保留 6 位小数。
+- 写调用出现 `UPSTREAM_ERROR`：RPC 或上游服务异常。修复方式：重试，检查 RPC 健康和链配置。

@@ -88,3 +88,10 @@ curl -X POST "$BASE_URL/api/v1/commands/execute" \
   -H 'content-type: application/json' \
   -d '{"command":"bridge.supportedAssets","params":{}}'
 ```
+
+## 失败排查
+
+- `UNKNOWN_COMMAND`：命令名写错。修复方式：先调用 `GET /api/v1/commands` 确认精确名称。
+- `VALIDATION_ERROR`：`params` 的字段名或类型不符合要求。修复方式：按命令元数据中的参数结构发送。
+- 带 `gamma` 或 `data` 的 `UPSTREAM_ERROR`：上游数据接口暂时不可用或超时。修复方式：重试并检查出口网络策略。
+- 带 `bridge` 的 `UPSTREAM_ERROR`：桥接接口异常或临时限流。修复方式：降低并发后重试。
