@@ -140,6 +140,12 @@ function escapeHtml(value: string): string {
     .replaceAll("'", "&#39;");
 }
 
+function toInlineJson(value: unknown): string {
+  return JSON.stringify(value)
+    .replaceAll("<", "\\u003c")
+    .replaceAll("</script>", "<\\/script>");
+}
+
 export function renderHomePageHtml(options: HomePageOptions): string {
   const copy = HOME_COPY[options.locale];
   const isZh = options.locale === "zh-CN";
@@ -195,6 +201,33 @@ export function renderHomePageHtml(options: HomePageOptions): string {
   const groupCtfLine = isZh
     ? "<code>approve.*</code> 与 <code>ctf.*</code> 链上操作"
     : "<code>approve.*</code> and <code>ctf.*</code> on-chain operations";
+  const consoleTitle = isZh ? "Web 控制台" : "Web Console";
+  const consoleSubtitle = isZh
+    ? "直接在页面选择命令并执行，无需手写 curl。"
+    : "Run commands directly on the page without writing curl.";
+  const consoleConfig = {
+    locale: options.locale,
+    labels: {
+      command: isZh ? "命令" : "Command",
+      params: isZh ? "参数 JSON（可编辑）" : "Params JSON (editable)",
+      execute: isZh ? "执行命令" : "Execute Command",
+      reset: isZh ? "恢复模板" : "Reset Template",
+      result: isZh ? "执行结果" : "Execution Result",
+      curl: isZh ? "参考 curl" : "Reference curl",
+      statusReady: isZh ? "就绪" : "Ready",
+      statusLoadingCommands: isZh ? "加载命令列表中..." : "Loading command list...",
+      statusLoadingDetail: isZh ? "加载命令模板中..." : "Loading command template...",
+      statusExecuting: isZh ? "请求执行中..." : "Executing request...",
+      statusDone: isZh ? "请求完成" : "Request completed",
+      statusError: isZh ? "请求失败" : "Request failed",
+      invalidJson: isZh ? "参数 JSON 解析失败，请修正后重试。" : "Invalid JSON parameters. Fix the payload and retry.",
+      unknownError: isZh ? "未知错误" : "Unknown error",
+      selectPlaceholder: isZh ? "请选择命令" : "Select command",
+      noCommand: isZh ? "暂无可用命令" : "No commands available",
+      commandLoadFailed: isZh ? "命令加载失败" : "Command loading failed",
+    },
+  };
+  const inlineConsoleConfig = toInlineJson(consoleConfig);
 
   return `<!doctype html>
 <html lang="${copy.htmlLang}">
@@ -267,10 +300,53 @@ export function renderHomePageHtml(options: HomePageOptions): string {
         border-radius: 14px;
         padding: 16px;
       }
+      .card.wide {
+        grid-column: 1 / -1;
+      }
       h2 { margin: 2px 0 4px; font-size: 20px; }
       .section-subtitle { margin: 0 0 14px; color: var(--muted); font-size: 14px; }
       ul { margin: 0; padding-left: 20px; }
       li { margin: 6px 0; color: #20344f; }
+      label {
+        display: inline-block;
+        margin: 8px 0 6px;
+        font-size: 13px;
+        font-weight: 600;
+        color: #2c3f5f;
+      }
+      .console-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 12px;
+      }
+      .console-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-top: 10px;
+      }
+      .console-status {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        border-radius: 999px;
+        padding: 6px 10px;
+        font-size: 12px;
+        font-weight: 600;
+        border: 1px solid #cde1ff;
+        background: #eef5ff;
+        color: #1d58bf;
+      }
+      .console-status.error {
+        background: #fff0f2;
+        border-color: #ffc7d1;
+        color: #a1253a;
+      }
+      .console-status.muted {
+        background: #f2f5fa;
+        border-color: #dde3ee;
+        color: #4f627f;
+      }
       code {
         background: #f1f4fa;
         border: 1px solid #e1e7f3;
@@ -290,6 +366,39 @@ export function renderHomePageHtml(options: HomePageOptions): string {
         font-family: "SFMono-Regular", Menlo, Monaco, Consolas, monospace;
         font-size: 12px;
         line-height: 1.5;
+      }
+      textarea {
+        width: 100%;
+        min-height: 170px;
+        resize: vertical;
+        border-radius: 10px;
+        border: 1px solid #cfd9ea;
+        padding: 10px;
+        font-family: "SFMono-Regular", Menlo, Monaco, Consolas, monospace;
+        font-size: 12px;
+        line-height: 1.45;
+      }
+      select {
+        width: 100%;
+        border-radius: 10px;
+        border: 1px solid #cfd9ea;
+        padding: 9px 10px;
+        font-size: 14px;
+        background: #fff;
+      }
+      button {
+        appearance: none;
+        border: 1px solid #c8d9fb;
+        background: #eff5ff;
+        color: #164fae;
+        font-weight: 700;
+        border-radius: 9px;
+        padding: 8px 12px;
+        font-size: 13px;
+        cursor: pointer;
+      }
+      button:hover {
+        background: #e6f0ff;
       }
       a { color: var(--accent); text-decoration: none; }
       a:hover { text-decoration: underline; }
@@ -320,6 +429,7 @@ export function renderHomePageHtml(options: HomePageOptions): string {
       @media (max-width: 850px) {
         .grid { grid-template-columns: 1fr; }
         .hero h1 { font-size: 28px; }
+        .console-grid { grid-template-columns: 1fr; }
       }
     </style>
   </head>
@@ -361,6 +471,29 @@ export function renderHomePageHtml(options: HomePageOptions): string {
             <a class="link-chip" href="/api/v1/commands/markets.list">${copy.linkSampleCommand}</a>
             <a class="link-chip" href="/api/v1/manifest">${copy.linkManifest}</a>
           </div>
+        </section>
+
+        <section class="card wide">
+          ${sectionTitle(consoleTitle, consoleSubtitle)}
+          <div class="console-status muted" id="cmd-status"></div>
+          <label for="cmd-select"></label>
+          <select id="cmd-select"></select>
+          <div class="console-grid">
+            <div>
+              <label for="cmd-params"></label>
+              <textarea id="cmd-params" spellcheck="false"></textarea>
+            </div>
+            <div>
+              <label for="cmd-result"></label>
+              <pre id="cmd-result"></pre>
+            </div>
+          </div>
+          <div class="console-actions">
+            <button id="cmd-run" type="button"></button>
+            <button id="cmd-reset" type="button"></button>
+          </div>
+          <label for="cmd-curl"></label>
+          <pre id="cmd-curl"></pre>
         </section>
 
         <section class="card">
@@ -428,6 +561,161 @@ export function renderHomePageHtml(options: HomePageOptions): string {
         ${copy.footer}
       </p>
     </div>
+    <script>
+      const consoleConfig = ${inlineConsoleConfig};
+      const labels = consoleConfig.labels;
+      const commandSelect = document.getElementById("cmd-select");
+      const paramsInput = document.getElementById("cmd-params");
+      const runButton = document.getElementById("cmd-run");
+      const resetButton = document.getElementById("cmd-reset");
+      const resultBox = document.getElementById("cmd-result");
+      const curlBox = document.getElementById("cmd-curl");
+      const statusBox = document.getElementById("cmd-status");
+      const selectLabel = document.querySelector('label[for="cmd-select"]');
+      const paramsLabel = document.querySelector('label[for="cmd-params"]');
+      const resultLabel = document.querySelector('label[for="cmd-result"]');
+      const curlLabel = document.querySelector('label[for="cmd-curl"]');
+
+      if (selectLabel) selectLabel.textContent = labels.command;
+      if (paramsLabel) paramsLabel.textContent = labels.params;
+      if (resultLabel) resultLabel.textContent = labels.result;
+      if (curlLabel) curlLabel.textContent = labels.curl;
+      if (runButton) runButton.textContent = labels.execute;
+      if (resetButton) resetButton.textContent = labels.reset;
+
+      let activeTemplate = "{}";
+      let activeCurl = "";
+
+      function setStatus(text, mode) {
+        if (!statusBox) return;
+        statusBox.textContent = text;
+        statusBox.classList.remove("error", "muted");
+        if (mode === "error") statusBox.classList.add("error");
+        if (mode === "muted") statusBox.classList.add("muted");
+      }
+
+      function pretty(value) {
+        return JSON.stringify(value, null, 2);
+      }
+
+      async function loadDetails(commandName) {
+        setStatus(labels.statusLoadingDetail, "muted");
+        const response = await fetch("/api/v1/commands/" + encodeURIComponent(commandName));
+        const payload = await response.json();
+        if (!response.ok || !payload.success) {
+          throw new Error(payload?.error?.message || labels.commandLoadFailed);
+        }
+        activeTemplate = pretty(payload.data.paramsExample || {});
+        activeCurl = payload.data.curlExample || "";
+        if (paramsInput) paramsInput.value = activeTemplate;
+        if (curlBox) curlBox.textContent = activeCurl;
+        setStatus(labels.statusReady, "muted");
+      }
+
+      async function loadCommands() {
+        setStatus(labels.statusLoadingCommands, "muted");
+        const response = await fetch("/api/v1/commands");
+        const payload = await response.json();
+        if (!response.ok || !payload.success || !Array.isArray(payload.data)) {
+          throw new Error(labels.commandLoadFailed);
+        }
+
+        const items = payload.data;
+        if (!commandSelect) return;
+        commandSelect.innerHTML = "";
+
+        if (items.length === 0) {
+          const option = document.createElement("option");
+          option.value = "";
+          option.textContent = labels.noCommand;
+          commandSelect.appendChild(option);
+          setStatus(labels.noCommand, "error");
+          return;
+        }
+
+        items.sort((a, b) => String(a.command).localeCompare(String(b.command)));
+        for (const item of items) {
+          const option = document.createElement("option");
+          option.value = item.command;
+          option.textContent = item.command + (item.authRequired ? " [auth]" : "");
+          commandSelect.appendChild(option);
+        }
+
+        const params = new URLSearchParams(window.location.search);
+        const queryCommand = params.get("command");
+        const hasQuery = items.some((item) => item.command === queryCommand);
+        const firstCommand = hasQuery ? queryCommand : items[0].command;
+
+        commandSelect.value = firstCommand;
+        await loadDetails(firstCommand);
+      }
+
+      async function runCommand() {
+        if (!commandSelect || !paramsInput) return;
+        setStatus(labels.statusExecuting, "muted");
+
+        let params;
+        try {
+          params = JSON.parse(paramsInput.value || "{}");
+        } catch (_error) {
+          if (resultBox) resultBox.textContent = labels.invalidJson;
+          setStatus(labels.statusError, "error");
+          return;
+        }
+
+        const response = await fetch("/api/v1/commands/execute", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({
+            command: commandSelect.value,
+            params,
+          }),
+        });
+        const payload = await response.json().catch(() => ({
+          success: false,
+          error: { message: labels.unknownError },
+        }));
+
+        if (resultBox) resultBox.textContent = pretty(payload);
+        setStatus(response.ok ? labels.statusDone : labels.statusError, response.ok ? "muted" : "error");
+      }
+
+      if (commandSelect) {
+        commandSelect.addEventListener("change", async () => {
+          if (!commandSelect.value) return;
+          try {
+            await loadDetails(commandSelect.value);
+          } catch (error) {
+            if (resultBox) resultBox.textContent = String(error);
+            setStatus(labels.statusError, "error");
+          }
+        });
+      }
+
+      if (runButton) {
+        runButton.addEventListener("click", async () => {
+          try {
+            await runCommand();
+          } catch (error) {
+            if (resultBox) resultBox.textContent = String(error);
+            setStatus(labels.statusError, "error");
+          }
+        });
+      }
+
+      if (resetButton) {
+        resetButton.addEventListener("click", () => {
+          if (paramsInput) paramsInput.value = activeTemplate;
+          if (curlBox) curlBox.textContent = activeCurl;
+          setStatus(labels.statusReady, "muted");
+        });
+      }
+
+      loadCommands().catch((error) => {
+        if (resultBox) resultBox.textContent = String(error);
+        setStatus(labels.commandLoadFailed, "error");
+      });
+    </script>
   </body>
 </html>`;
 }

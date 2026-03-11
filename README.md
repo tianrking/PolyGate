@@ -46,6 +46,7 @@ This project is not a thin shell around CLI output. It provides:
 - Command manifest endpoint: `GET /api/v1/manifest`
 - Health endpoint: `GET /health`
 - Human-friendly homepage: `GET /`
+- Interactive homepage console for command selection, parameter editing, and live execution
 - Public data support across Gamma, Data API, CLOB public endpoints, and Bridge
 - Authenticated trading and account commands through `@polymarket/clob-client`
 - On-chain approval and CTF command support via `viem`
