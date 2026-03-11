@@ -1,0 +1,10 @@
+services:
+  polygate:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    env_file:
+      - .env
+    ports:
+      - "3107:3107"
+    restart: unless-stopped

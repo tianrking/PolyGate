@@ -1,0 +1,42 @@
+{
+  "name": "polygate",
+  "version": "0.1.0",
+  "description": "PolyGate: a unified HTTP command gateway for Polymarket across Node.js and Cloudflare Workers",
+  "main": "./dist/server.js",
+  "scripts": {
+    "dev": "tsx watch src/server.ts",
+    "build": "rm -rf dist && tsc -p tsconfig.json",
+    "start": "node dist/server.js",
+    "test": "vitest run",
+    "cf:dev": "wrangler dev",
+    "cf:deploy": "wrangler deploy"
+  },
+  "keywords": [
+    "polymarket",
+    "workers",
+    "http",
+    "cli",
+    "cloudflare"
+  ],
+  "license": "MIT",
+  "type": "module",
+  "dependencies": {
+    "@fastify/cors": "^11.2.0",
+    "@fastify/helmet": "^13.0.2",
+    "@fastify/rate-limit": "^10.3.0",
+    "@polymarket/clob-client": "^5.8.0",
+    "dotenv": "^17.3.1",
+    "fastify": "^5.8.2",
+    "hono": "^4.12.7",
+    "viem": "^2.47.1",
+    "zod": "^4.3.6"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20260310.1",
+    "@types/node": "^25.4.0",
+    "tsx": "^4.21.0",
+    "typescript": "^5.9.3",
+    "vitest": "^4.0.18",
+    "wrangler": "^4.72.0"
+  }
+}
