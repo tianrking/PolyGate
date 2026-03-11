@@ -42,6 +42,8 @@ This project is not a thin shell around CLI output. It provides:
 
 - Unified command endpoint: `POST /api/v1/commands/execute`
 - Command discovery endpoint: `GET /api/v1/commands`
+- Command details endpoint: `GET /api/v1/commands/:command`
+- Command manifest endpoint: `GET /api/v1/manifest`
 - Health endpoint: `GET /health`
 - Human-friendly homepage: `GET /`
 - Public data support across Gamma, Data API, CLOB public endpoints, and Bridge
@@ -233,6 +235,23 @@ Response shape:
   ]
 }
 ```
+
+### Command Details
+
+- `GET /api/v1/commands/:command`
+
+Returns one command with:
+
+- auth requirement
+- request params JSON schema
+- generated params example
+- generated curl example
+
+### Command Manifest
+
+- `GET /api/v1/manifest`
+
+Returns full metadata for all commands in one response, useful for SDK generation and integration automation.
 
 ### Homepage
 

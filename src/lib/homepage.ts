@@ -31,6 +31,8 @@ type HomeCopy = {
   footer: string;
   linkHealth: string;
   linkCommands: string;
+  linkManifest: string;
+  linkSampleCommand: string;
   linkRepo: string;
   linkReadmeEn: string;
   linkReadmeZh: string;
@@ -64,6 +66,8 @@ const HOME_COPY: Record<HomePageLocale, HomeCopy> = {
       "Need the full live command catalog with auth flags? Check /api/v1/commands.",
     linkHealth: "Open /health",
     linkCommands: "Open /api/v1/commands",
+    linkManifest: "Open /api/v1/manifest",
+    linkSampleCommand: "Open /api/v1/commands/markets.list",
     linkRepo: "GitHub Repo",
     linkReadmeEn: "README (EN)",
     linkReadmeZh: "README (ZH)",
@@ -94,6 +98,8 @@ const HOME_COPY: Record<HomePageLocale, HomeCopy> = {
     footer: "需要实时命令清单和鉴权标记，请查看 /api/v1/commands。",
     linkHealth: "打开 /health",
     linkCommands: "打开 /api/v1/commands",
+    linkManifest: "打开 /api/v1/manifest",
+    linkSampleCommand: "打开 /api/v1/commands/markets.list",
     linkRepo: "GitHub 仓库",
     linkReadmeEn: "README 英文",
     linkReadmeZh: "README 中文",
@@ -150,6 +156,8 @@ export function renderHomePageHtml(options: HomePageOptions): string {
   const endpointDescHealth = isZh ? "服务健康状态" : "Service health";
   const endpointDescCommands = isZh ? "可用命令列表" : "Command list";
   const endpointDescExecute = isZh ? "执行命令请求" : "Execute command";
+  const endpointDescDetail = isZh ? "单命令详情与示例" : "Single-command details and examples";
+  const endpointDescManifest = isZh ? "完整命令元数据清单" : "Full command metadata catalog";
   const tableMethod = isZh ? "方法" : "Method";
   const tablePath = isZh ? "路径" : "Path";
   const tableDesc = isZh ? "说明" : "Description";
@@ -342,12 +350,16 @@ export function renderHomePageHtml(options: HomePageOptions): string {
             <tbody>
               <tr><td>GET</td><td><code>/health</code></td><td>${endpointDescHealth}</td></tr>
               <tr><td>GET</td><td><code>/api/v1/commands</code></td><td>${endpointDescCommands}</td></tr>
+              <tr><td>GET</td><td><code>/api/v1/commands/:command</code></td><td>${endpointDescDetail}</td></tr>
+              <tr><td>GET</td><td><code>/api/v1/manifest</code></td><td>${endpointDescManifest}</td></tr>
               <tr><td>POST</td><td><code>/api/v1/commands/execute</code></td><td>${endpointDescExecute}</td></tr>
             </tbody>
           </table>
           <div class="links">
             <a class="link-chip" href="/health">${copy.linkHealth}</a>
             <a class="link-chip" href="/api/v1/commands">${copy.linkCommands}</a>
+            <a class="link-chip" href="/api/v1/commands/markets.list">${copy.linkSampleCommand}</a>
+            <a class="link-chip" href="/api/v1/manifest">${copy.linkManifest}</a>
           </div>
         </section>
 

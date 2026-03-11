@@ -3,7 +3,8 @@ import { cors } from "hono/cors";
 
 import { buildCommandRegistry, listCommands } from "./commands.js";
 import { workerConfig, type WorkerBindings } from "./config/worker.js";
-import { normalizeError } from "./lib/errors.js";
+import { getCommandDetails, listCommandDetails } from "./lib/command-catalog.js";
+import { AppError, normalizeError } from "./lib/errors.js";
 import { renderHomePageHtml, resolveHomeLocale } from "./lib/homepage.js";
 import { PolymarketService } from "./services/polymarket-service.js";
 import { executeCommandPayload } from "./transport/command-execution.js";
@@ -76,6 +77,46 @@ app.get("/api/v1/commands", (c) => {
   return c.json({
     success: true,
     data: commandList,
+  });
+});
+
+app.get("/api/v1/commands/:command", (c) => {
+  const { registry } = getRuntime(c.env);
+  const command = c.req.param("command");
+  const baseUrl = new URL(c.req.url).origin;
+  const details = getCommandDetails(registry, command, baseUrl);
+
+  if (!details) {
+    throw new AppError(`Unsupported command: ${command}`, {
+      statusCode: 404,
+      code: "UNKNOWN_COMMAND",
+    });
+  }
+
+  return c.json({
+    success: true,
+    data: details,
+  });
+});
+
+app.get("/api/v1/manifest", (c) => {
+  const { registry } = getRuntime(c.env);
+  const baseUrl = new URL(c.req.url).origin;
+
+  return c.json({
+    success: true,
+    data: {
+      service: "PolyGate",
+      version: "0.1.0",
+      generatedAt: new Date().toISOString(),
+      endpoints: {
+        health: "/health",
+        listCommands: "/api/v1/commands",
+        commandDetails: "/api/v1/commands/:command",
+        execute: "/api/v1/commands/execute",
+      },
+      commands: listCommandDetails(registry, baseUrl),
+    },
   });
 });
 

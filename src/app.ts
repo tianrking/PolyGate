@@ -1,11 +1,12 @@
 import cors from "@fastify/cors";
 import helmet from "@fastify/helmet";
 import rateLimit from "@fastify/rate-limit";
-import Fastify, { type FastifyInstance } from "fastify";
+import Fastify, { type FastifyInstance, type FastifyRequest } from "fastify";
 
 import { buildCommandRegistry, listCommands } from "./commands.js";
 import { nodeConfig } from "./config/node.js";
-import { normalizeError } from "./lib/errors.js";
+import { getCommandDetails, listCommandDetails } from "./lib/command-catalog.js";
+import { AppError, normalizeError } from "./lib/errors.js";
 import { renderHomePageHtml, resolveHomeLocale } from "./lib/homepage.js";
 import { PolymarketService } from "./services/polymarket-service.js";
 import { executeCommandPayload } from "./transport/command-execution.js";
@@ -28,6 +29,15 @@ function resolveProtocol(value: string | undefined): string {
   }
 
   return "http";
+}
+
+function resolveBaseUrl(request: FastifyRequest): string {
+  const protocol = resolveProtocol(
+    getHeaderValue(request.headers["x-forwarded-proto"]) ?? request.protocol,
+  );
+  const host = getHeaderValue(request.headers.host) ?? "localhost";
+
+  return `${protocol}://${host}`;
 }
 
 export async function buildApp(): Promise<FastifyInstance> {
@@ -60,17 +70,14 @@ export async function buildApp(): Promise<FastifyInstance> {
     const requestUrl = new URL(request.raw.url ?? "/", "http://localhost");
     const queryLang = requestUrl.searchParams.get("lang");
     const acceptLanguage = getHeaderValue(request.headers["accept-language"]);
-    const protocol = resolveProtocol(
-      getHeaderValue(request.headers["x-forwarded-proto"]) ?? request.protocol,
-    );
-    const host = getHeaderValue(request.headers.host) ?? "localhost";
+    const baseUrl = resolveBaseUrl(request);
 
     reply.type("text/html; charset=utf-8");
     return renderHomePageHtml({
       runtime: "nodejs",
       commandCount: commandList.length,
       locale: resolveHomeLocale(queryLang, acceptLanguage),
-      baseUrl: `${protocol}://${host}`,
+      baseUrl,
     });
   });
 
@@ -82,6 +89,39 @@ export async function buildApp(): Promise<FastifyInstance> {
   app.get("/api/v1/commands", async () => ({
     success: true,
     data: commandList,
+  }));
+
+  app.get("/api/v1/commands/:command", async (request) => {
+    const { command } = request.params as { command: string };
+    const details = getCommandDetails(registry, command, resolveBaseUrl(request));
+
+    if (!details) {
+      throw new AppError(`Unsupported command: ${command}`, {
+        statusCode: 404,
+        code: "UNKNOWN_COMMAND",
+      });
+    }
+
+    return {
+      success: true,
+      data: details,
+    };
+  });
+
+  app.get("/api/v1/manifest", async (request) => ({
+    success: true,
+    data: {
+      service: "PolyGate",
+      version: "0.1.0",
+      generatedAt: new Date().toISOString(),
+      endpoints: {
+        health: "/health",
+        listCommands: "/api/v1/commands",
+        commandDetails: "/api/v1/commands/:command",
+        execute: "/api/v1/commands/execute",
+      },
+      commands: listCommandDetails(registry, resolveBaseUrl(request)),
+    },
   }));
 
   app.post("/api/v1/commands/execute", async (request) => {
