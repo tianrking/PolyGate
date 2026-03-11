@@ -241,43 +241,100 @@ export function renderHomePageHtml(options: HomePageOptions): string {
     <meta name="description" content="PolyGate turns Polymarket capabilities into a deployable HTTP command service." />
     <style>
       :root {
-        --bg: #f6f8fb;
-        --card: #ffffff;
-        --text: #102036;
-        --muted: #4b5a71;
-        --line: #d6dce8;
-        --accent: #0f6fff;
-        --accent-soft: #e8f1ff;
+        --bg-0: #0a1223;
+        --bg-1: #111f3d;
+        --bg-2: #edf2fb;
+        --card: rgba(255, 255, 255, 0.88);
+        --card-line: rgba(173, 189, 219, 0.42);
+        --text: #10213d;
+        --muted: #4a5d7d;
+        --accent: #1f76ff;
+        --accent-strong: #0a57d5;
+        --good: #0f9f6e;
+        --warn: #ad2d4e;
       }
-      * { box-sizing: border-box; }
+      * {
+        box-sizing: border-box;
+      }
       body {
         margin: 0;
-        font-family: "IBM Plex Sans", "Segoe UI", -apple-system, BlinkMacSystemFont, sans-serif;
+        font-family: "Space Grotesk", "Avenir Next", "SF Pro Display", "Segoe UI", sans-serif;
         color: var(--text);
         background:
-          radial-gradient(circle at 10% 0%, #dce9ff 0, transparent 38%),
-          radial-gradient(circle at 100% 20%, #e2f7ee 0, transparent 32%),
-          var(--bg);
+          radial-gradient(1200px 500px at 15% -10%, rgba(49, 119, 246, 0.36), transparent 60%),
+          radial-gradient(900px 460px at 100% -5%, rgba(14, 176, 208, 0.25), transparent 55%),
+          linear-gradient(185deg, var(--bg-0) 0%, var(--bg-1) 26%, var(--bg-2) 70%);
+        min-height: 100vh;
       }
-      .wrap { max-width: 1100px; margin: 0 auto; padding: 28px 18px 48px; }
+      body::before {
+        content: "";
+        position: fixed;
+        inset: 0;
+        pointer-events: none;
+        opacity: 0.3;
+        background-image:
+          linear-gradient(to right, rgba(180, 202, 236, 0.16) 1px, transparent 1px),
+          linear-gradient(to bottom, rgba(180, 202, 236, 0.16) 1px, transparent 1px);
+        background-size: 28px 28px;
+      }
+      .wrap {
+        position: relative;
+        z-index: 1;
+        max-width: 1220px;
+        margin: 0 auto;
+        padding: 26px 18px 52px;
+      }
       .hero {
-        background: linear-gradient(140deg, #0f6fff 0%, #1f8df5 55%, #11b0d8 100%);
-        color: #fff;
-        border-radius: 18px;
-        padding: 28px;
-        box-shadow: 0 12px 34px rgba(18, 49, 96, 0.2);
+        position: relative;
+        overflow: hidden;
+        background: linear-gradient(135deg, #0c3f99 0%, #1261d9 44%, #0d9ab9 100%);
+        color: #eff6ff;
+        border-radius: 22px;
+        padding: 30px;
+        border: 1px solid rgba(201, 221, 255, 0.34);
+        box-shadow:
+          0 20px 60px rgba(8, 35, 88, 0.4),
+          inset 0 1px 0 rgba(255, 255, 255, 0.18);
       }
-      .hero h1 { margin: 0 0 8px; font-size: 34px; line-height: 1.1; }
-      .hero p { margin: 0; font-size: 16px; opacity: 0.96; max-width: 860px; }
-      .badges { margin-top: 16px; display: flex; flex-wrap: wrap; gap: 8px; }
+      .hero::after {
+        content: "";
+        position: absolute;
+        right: -120px;
+        top: -140px;
+        width: 380px;
+        height: 380px;
+        border-radius: 50%;
+        background: radial-gradient(circle, rgba(255, 255, 255, 0.22) 0%, transparent 68%);
+        pointer-events: none;
+      }
+      .hero h1 {
+        margin: 0 0 8px;
+        font-size: 38px;
+        line-height: 1.06;
+        letter-spacing: -0.02em;
+      }
+      .hero p {
+        margin: 0;
+        font-size: 16px;
+        opacity: 0.95;
+        max-width: 900px;
+        line-height: 1.5;
+      }
+      .badges {
+        margin-top: 16px;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
       .badge {
         display: inline-block;
-        background: rgba(255, 255, 255, 0.18);
-        border: 1px solid rgba(255, 255, 255, 0.35);
+        background: rgba(255, 255, 255, 0.14);
+        border: 1px solid rgba(255, 255, 255, 0.34);
         border-radius: 999px;
-        padding: 6px 11px;
+        padding: 7px 12px;
         font-size: 12px;
-        font-weight: 600;
+        font-weight: 700;
+        letter-spacing: 0.01em;
       }
       .language-switch {
         margin-top: 16px;
@@ -289,38 +346,115 @@ export function renderHomePageHtml(options: HomePageOptions): string {
         color: #fff;
         border: 1px solid rgba(255, 255, 255, 0.45);
         border-radius: 999px;
-        padding: 6px 11px;
-        font-weight: 600;
+        padding: 7px 12px;
+        font-weight: 700;
         font-size: 13px;
       }
       .lang-chip.active {
         background: rgba(255, 255, 255, 0.24);
       }
-      .grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; margin-top: 14px; }
+      .hero-actions {
+        margin-top: 14px;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+      .hero-action {
+        color: #eaf3ff;
+        border: 1px solid rgba(222, 236, 255, 0.5);
+        background: rgba(11, 40, 95, 0.28);
+        border-radius: 10px;
+        padding: 8px 12px;
+        font-size: 13px;
+        font-weight: 700;
+      }
+      .hero-action:hover {
+        text-decoration: none;
+        background: rgba(255, 255, 255, 0.16);
+      }
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(12, minmax(0, 1fr));
+        gap: 14px;
+        margin-top: 14px;
+      }
       .card {
+        grid-column: span 6;
         background: var(--card);
-        border: 1px solid var(--line);
-        border-radius: 14px;
-        padding: 16px;
+        border: 1px solid var(--card-line);
+        border-radius: 18px;
+        padding: 18px;
+        box-shadow: 0 12px 32px rgba(15, 31, 63, 0.08);
+        backdrop-filter: blur(8px);
+        transition: transform 140ms ease, box-shadow 140ms ease;
+      }
+      .card:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 18px 34px rgba(15, 31, 63, 0.14);
       }
       .card.wide {
         grid-column: 1 / -1;
       }
-      h2 { margin: 2px 0 4px; font-size: 20px; }
-      .section-subtitle { margin: 0 0 14px; color: var(--muted); font-size: 14px; }
-      ul { margin: 0; padding-left: 20px; }
-      li { margin: 6px 0; color: #20344f; }
+      h2 {
+        margin: 2px 0 4px;
+        font-size: 21px;
+        letter-spacing: -0.01em;
+      }
+      .section-subtitle {
+        margin: 0 0 14px;
+        color: var(--muted);
+        font-size: 14px;
+      }
+      ul {
+        margin: 0;
+        padding-left: 20px;
+      }
+      li {
+        margin: 7px 0;
+        color: #20344f;
+      }
       label {
         display: inline-block;
-        margin: 8px 0 6px;
+        margin: 8px 0 7px;
         font-size: 13px;
-        font-weight: 600;
+        font-weight: 700;
         color: #2c3f5f;
       }
-      .console-grid {
+      .console-shell {
+        border: 1px solid #d9e3f6;
+        border-radius: 14px;
+        padding: 14px;
+        background: linear-gradient(180deg, #f8fbff 0%, #f2f7ff 100%);
+      }
+      .console-toolbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+      .console-shortcuts {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+      .console-main {
         display: grid;
         grid-template-columns: repeat(2, minmax(0, 1fr));
         gap: 12px;
+        margin-top: 10px;
+      }
+      .console-column {
+        min-width: 0;
+      }
+      .console-column pre {
+        margin-top: 0;
+      }
+      #cmd-result {
+        min-height: 248px;
+      }
+      #cmd-curl {
+        min-height: 118px;
       }
       .console-actions {
         display: flex;
@@ -333,110 +467,174 @@ export function renderHomePageHtml(options: HomePageOptions): string {
         align-items: center;
         gap: 6px;
         border-radius: 999px;
-        padding: 6px 10px;
+        padding: 7px 11px;
         font-size: 12px;
-        font-weight: 600;
-        border: 1px solid #cde1ff;
-        background: #eef5ff;
-        color: #1d58bf;
+        font-weight: 700;
+        border: 1px solid #cde2ff;
+        background: #ebf3ff;
+        color: #184da9;
       }
       .console-status.error {
-        background: #fff0f2;
-        border-color: #ffc7d1;
-        color: #a1253a;
+        background: #fff1f4;
+        border-color: #ffd4dd;
+        color: var(--warn);
       }
       .console-status.muted {
-        background: #f2f5fa;
-        border-color: #dde3ee;
+        background: #f3f7fe;
+        border-color: #dae3f4;
         color: #4f627f;
       }
       code {
-        background: #f1f4fa;
-        border: 1px solid #e1e7f3;
+        background: #eff3fb;
+        border: 1px solid #dce5f4;
         border-radius: 6px;
         padding: 2px 6px;
-        font-family: "SFMono-Regular", Menlo, Monaco, Consolas, monospace;
+        font-family: "JetBrains Mono", "SFMono-Regular", Menlo, Monaco, Consolas, monospace;
         font-size: 12px;
       }
       pre {
         margin: 0;
         overflow: auto;
-        background: #0f1a2b;
-        color: #e2ecff;
+        background: linear-gradient(165deg, #0d182d 0%, #132a4e 100%);
+        color: #e6efff;
         border-radius: 12px;
         padding: 14px;
-        border: 1px solid #1d2a41;
-        font-family: "SFMono-Regular", Menlo, Monaco, Consolas, monospace;
+        border: 1px solid #213a62;
+        font-family: "JetBrains Mono", "SFMono-Regular", Menlo, Monaco, Consolas, monospace;
         font-size: 12px;
         line-height: 1.5;
       }
       textarea {
         width: 100%;
-        min-height: 170px;
+        min-height: 212px;
         resize: vertical;
         border-radius: 10px;
-        border: 1px solid #cfd9ea;
+        border: 1px solid #25406a;
+        background: linear-gradient(180deg, #0b172d 0%, #0f203f 100%);
+        color: #e9f2ff;
         padding: 10px;
-        font-family: "SFMono-Regular", Menlo, Monaco, Consolas, monospace;
+        font-family: "JetBrains Mono", "SFMono-Regular", Menlo, Monaco, Consolas, monospace;
         font-size: 12px;
         line-height: 1.45;
       }
       select {
         width: 100%;
         border-radius: 10px;
-        border: 1px solid #cfd9ea;
-        padding: 9px 10px;
+        border: 1px solid #bfd1ef;
+        padding: 10px 11px;
         font-size: 14px;
         background: #fff;
+        color: #1f3354;
       }
       button {
         appearance: none;
-        border: 1px solid #c8d9fb;
-        background: #eff5ff;
-        color: #164fae;
+        border: 1px solid transparent;
+        background: #eef4ff;
+        color: #123f8f;
         font-weight: 700;
         border-radius: 9px;
-        padding: 8px 12px;
+        padding: 9px 13px;
         font-size: 13px;
         cursor: pointer;
+        transition: transform 120ms ease, box-shadow 120ms ease, background 120ms ease;
+      }
+      #cmd-run {
+        background: linear-gradient(140deg, var(--accent) 0%, var(--accent-strong) 100%);
+        color: #fff;
+        box-shadow: 0 8px 16px rgba(21, 91, 202, 0.32);
       }
       button:hover {
-        background: #e6f0ff;
+        transform: translateY(-1px);
+      }
+      #cmd-run:hover {
+        background: linear-gradient(140deg, #267eff 0%, #0f5de0 100%);
+      }
+      #cmd-reset {
+        border-color: #c9d9f3;
+        background: #f8fbff;
+        color: #305080;
       }
       button:disabled {
         cursor: not-allowed;
-        opacity: 0.6;
+        opacity: 0.58;
+        transform: none;
       }
-      a { color: var(--accent); text-decoration: none; }
-      a:hover { text-decoration: underline; }
-      .links { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+      a {
+        color: var(--accent);
+        text-decoration: none;
+      }
+      a:hover {
+        text-decoration: underline;
+      }
+      .links {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-top: 12px;
+      }
       .link-chip {
-        background: var(--accent-soft);
-        border: 1px solid #c9ddff;
+        background: #eaf2ff;
+        border: 1px solid #c9dcff;
         border-radius: 999px;
-        color: #124db2;
+        color: #124ea9;
         padding: 7px 12px;
-        font-weight: 600;
+        font-weight: 700;
         font-size: 13px;
+      }
+      .link-chip.subtle {
+        background: #f5f8ff;
+        border-color: #d9e4f8;
+        color: #3c5a85;
       }
       table {
         width: 100%;
         border-collapse: collapse;
         font-size: 13px;
+        border-radius: 12px;
+        overflow: hidden;
       }
       th, td {
-        border-bottom: 1px solid #e8edf6;
+        border-bottom: 1px solid #e3ebf7;
         text-align: left;
-        padding: 8px 6px;
+        padding: 9px 8px;
       }
       th {
         color: #2f4463;
+        background: #f6f9ff;
       }
-      .footer { margin-top: 18px; color: var(--muted); font-size: 13px; }
-      @media (max-width: 850px) {
-        .grid { grid-template-columns: 1fr; }
-        .hero h1 { font-size: 28px; }
-        .console-grid { grid-template-columns: 1fr; }
+      .footer {
+        margin-top: 18px;
+        color: #3f567b;
+        font-size: 13px;
+        background: rgba(255, 255, 255, 0.75);
+        border: 1px solid rgba(173, 189, 219, 0.42);
+        border-radius: 12px;
+        padding: 11px 12px;
+      }
+      @media (max-width: 1024px) {
+        .grid {
+          grid-template-columns: repeat(6, minmax(0, 1fr));
+        }
+        .card {
+          grid-column: span 6;
+        }
+      }
+      @media (max-width: 780px) {
+        .wrap {
+          padding: 16px 12px 32px;
+        }
+        .hero {
+          padding: 18px;
+        }
+        .hero h1 {
+          font-size: 30px;
+        }
+        .console-main {
+          grid-template-columns: 1fr;
+        }
+        #cmd-result {
+          min-height: 196px;
+        }
       }
     </style>
   </head>
@@ -454,6 +652,11 @@ export function renderHomePageHtml(options: HomePageOptions): string {
         <div class="language-switch">
           <a class="lang-chip ${options.locale === "en" ? "active" : ""}" href="/?lang=en">English</a>
           <a class="lang-chip ${options.locale === "zh-CN" ? "active" : ""}" href="/?lang=zh-CN">中文</a>
+        </div>
+        <div class="hero-actions">
+          <a class="hero-action" href="/api/v1/commands">${copy.linkCommands}</a>
+          <a class="hero-action" href="/api/v1/manifest">${copy.linkManifest}</a>
+          <a class="hero-action" href="/api/v1/commands/markets.list">${copy.linkSampleCommand}</a>
         </div>
       </section>
 
@@ -482,25 +685,33 @@ export function renderHomePageHtml(options: HomePageOptions): string {
 
         <section class="card wide">
           ${sectionTitle(consoleTitle, consoleSubtitle)}
-          <div class="console-status muted" id="cmd-status"></div>
-          <label for="cmd-select"></label>
-          <select id="cmd-select"></select>
-          <div class="console-grid">
-            <div>
-              <label for="cmd-params"></label>
-              <textarea id="cmd-params" spellcheck="false"></textarea>
+          <div class="console-shell">
+            <div class="console-toolbar">
+              <div class="console-status muted" id="cmd-status"></div>
+              <div class="console-shortcuts">
+                <a class="link-chip subtle" href="/api/v1/commands">${copy.linkCommands}</a>
+                <a class="link-chip subtle" href="/api/v1/manifest">${copy.linkManifest}</a>
+              </div>
             </div>
-            <div>
-              <label for="cmd-result"></label>
-              <pre id="cmd-result"></pre>
+            <div class="console-main">
+              <div class="console-column">
+                <label for="cmd-select"></label>
+                <select id="cmd-select"></select>
+                <label for="cmd-params"></label>
+                <textarea id="cmd-params" spellcheck="false"></textarea>
+                <div class="console-actions">
+                  <button id="cmd-run" type="button"></button>
+                  <button id="cmd-reset" type="button"></button>
+                </div>
+              </div>
+              <div class="console-column">
+                <label for="cmd-result"></label>
+                <pre id="cmd-result"></pre>
+                <label for="cmd-curl"></label>
+                <pre id="cmd-curl"></pre>
+              </div>
             </div>
           </div>
-          <div class="console-actions">
-            <button id="cmd-run" type="button"></button>
-            <button id="cmd-reset" type="button"></button>
-          </div>
-          <label for="cmd-curl"></label>
-          <pre id="cmd-curl"></pre>
         </section>
 
         <section class="card">
