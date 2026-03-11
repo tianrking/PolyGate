@@ -239,6 +239,7 @@ Response shape:
 - `GET /`
 
 Returns a lightweight HTML landing page with quick usage guidance, endpoint links, and curl examples.
+Language switch is built-in: `/?lang=en` and `/?lang=zh-CN`.
 
 ### Execute Command
 

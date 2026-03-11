@@ -6,9 +6,29 @@ import Fastify, { type FastifyInstance } from "fastify";
 import { buildCommandRegistry, listCommands } from "./commands.js";
 import { nodeConfig } from "./config/node.js";
 import { normalizeError } from "./lib/errors.js";
-import { renderHomePageHtml } from "./lib/homepage.js";
+import { renderHomePageHtml, resolveHomeLocale } from "./lib/homepage.js";
 import { PolymarketService } from "./services/polymarket-service.js";
 import { executeCommandPayload } from "./transport/command-execution.js";
+
+function getHeaderValue(
+  value: string | string[] | undefined,
+): string | undefined {
+  if (!value) {
+    return undefined;
+  }
+
+  return Array.isArray(value) ? value[0] : value;
+}
+
+function resolveProtocol(value: string | undefined): string {
+  const candidate = value?.split(",")[0]?.trim().toLowerCase();
+
+  if (candidate === "https" || candidate === "http") {
+    return candidate;
+  }
+
+  return "http";
+}
 
 export async function buildApp(): Promise<FastifyInstance> {
   const service = new PolymarketService(nodeConfig);
@@ -36,11 +56,21 @@ export async function buildApp(): Promise<FastifyInstance> {
     timeWindow: nodeConfig.RATE_LIMIT_WINDOW,
   });
 
-  app.get("/", async (_request, reply) => {
+  app.get("/", async (request, reply) => {
+    const requestUrl = new URL(request.raw.url ?? "/", "http://localhost");
+    const queryLang = requestUrl.searchParams.get("lang");
+    const acceptLanguage = getHeaderValue(request.headers["accept-language"]);
+    const protocol = resolveProtocol(
+      getHeaderValue(request.headers["x-forwarded-proto"]) ?? request.protocol,
+    );
+    const host = getHeaderValue(request.headers.host) ?? "localhost";
+
     reply.type("text/html; charset=utf-8");
     return renderHomePageHtml({
       runtime: "nodejs",
       commandCount: commandList.length,
+      locale: resolveHomeLocale(queryLang, acceptLanguage),
+      baseUrl: `${protocol}://${host}`,
     });
   });
 

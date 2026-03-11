@@ -4,7 +4,7 @@ import { cors } from "hono/cors";
 import { buildCommandRegistry, listCommands } from "./commands.js";
 import { workerConfig, type WorkerBindings } from "./config/worker.js";
 import { normalizeError } from "./lib/errors.js";
-import { renderHomePageHtml } from "./lib/homepage.js";
+import { renderHomePageHtml, resolveHomeLocale } from "./lib/homepage.js";
 import { PolymarketService } from "./services/polymarket-service.js";
 import { executeCommandPayload } from "./transport/command-execution.js";
 
@@ -54,9 +54,16 @@ app.get("/health", (c) =>
 app.get("/", (c) => {
   const { registry } = getRuntime(c.env);
   const commandList = listCommands(registry);
+  const requestUrl = new URL(c.req.url);
+  const locale = resolveHomeLocale(
+    requestUrl.searchParams.get("lang"),
+    c.req.header("accept-language"),
+  );
   const html = renderHomePageHtml({
     runtime: "cloudflare-workers",
     commandCount: commandList.length,
+    locale,
+    baseUrl: requestUrl.origin,
   });
 
   return c.html(html);
