@@ -44,10 +44,12 @@ This project is not a thin shell around CLI output. It provides:
 - Command discovery endpoint: `GET /api/v1/commands`
 - Command details endpoint: `GET /api/v1/commands/:command`
 - Command manifest endpoint: `GET /api/v1/manifest`
+- Event stream endpoint: `GET /api/v1/events/stream` (SSE)
 - Health endpoint: `GET /health`
 - Human-friendly homepage: `GET /`
 - Interactive homepage console for command selection, parameter editing, and live execution
 - Optional per-command policy controls (`POLYGATE_DISABLED_COMMANDS`, `POLYGATE_FORCE_AUTH_COMMANDS`)
+- Optional webhook delivery for command execution events
 - Public data support across Gamma, Data API, CLOB public endpoints, and Bridge
 - Authenticated trading and account commands through `@polymarket/clob-client`
 - On-chain approval and CTF command support via `viem`
@@ -64,6 +66,7 @@ This project is not a thin shell around CLI output. It provides:
 - `Automated Workers Deploy (GitHub Actions)`: Implemented
 - `Dedicated docs/ command cookbook`: Implemented
 - `Per-command auth policy profiles`: Implemented
+- `Webhook + SSE command event delivery`: Implemented
 
 ## Architecture
 
@@ -258,6 +261,12 @@ Returns one command with:
 
 Returns full metadata for all commands in one response, useful for SDK generation and integration automation.
 
+### Event Stream (SSE)
+
+- `GET /api/v1/events/stream`
+
+Returns realtime `command.execution` events using `text/event-stream`.
+
 ### Homepage
 
 - `GET /`
@@ -393,6 +402,10 @@ Relevant env vars:
 - `POLYMARKET_ALLOW_PRIVATE_KEY_OVERRIDE` (`false` by default)
 - `POLYGATE_DISABLED_COMMANDS` (comma-separated command blocklist)
 - `POLYGATE_FORCE_AUTH_COMMANDS` (comma-separated commands that must have wallet context)
+- `POLYGATE_WEBHOOK_URL` (optional command event receiver URL)
+- `POLYGATE_WEBHOOK_BEARER_TOKEN` (optional bearer token for webhook delivery)
+- `POLYGATE_WEBHOOK_TIMEOUT_MS` (webhook timeout, default `5000`)
+- `POLYGATE_SSE_HEARTBEAT_MS` (SSE heartbeat interval, default `15000`)
 
 Optional override headers (disabled by default):
 
@@ -436,7 +449,7 @@ Items:
 - `Implemented`: Dedicated docs command cookbook split by category
 - `Implemented`: Optional per-command auth policy profiles
 - `Planned`: Pagination helpers and richer typed SDK facade
-- `Planned`: Optional webhook/streaming extension for market events
+- `Implemented`: Optional webhook and SSE streaming extension for command events
 
 ## References
 

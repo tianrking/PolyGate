@@ -54,6 +54,10 @@ export const runtimeConfigSchema = z.object({
   POLYMARKET_API_KEY_CACHE_TTL_MS: z.coerce.number().int().min(1000).max(3600000).default(300000),
   POLYGATE_DISABLED_COMMANDS: csvList,
   POLYGATE_FORCE_AUTH_COMMANDS: csvList,
+  POLYGATE_WEBHOOK_URL: z.string().url().optional(),
+  POLYGATE_WEBHOOK_BEARER_TOKEN: z.string().optional(),
+  POLYGATE_WEBHOOK_TIMEOUT_MS: z.coerce.number().int().min(1000).max(30000).default(5000),
+  POLYGATE_SSE_HEARTBEAT_MS: z.coerce.number().int().min(5000).max(120000).default(15000),
 });
 
 export type RuntimeConfig = z.infer<typeof runtimeConfigSchema>;

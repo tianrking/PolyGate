@@ -164,6 +164,7 @@ export function renderHomePageHtml(options: HomePageOptions): string {
   const endpointDescExecute = isZh ? "执行命令请求" : "Execute command";
   const endpointDescDetail = isZh ? "单命令详情与示例" : "Single-command details and examples";
   const endpointDescManifest = isZh ? "完整命令元数据清单" : "Full command metadata catalog";
+  const endpointDescStream = isZh ? "实时事件流（SSE）" : "Realtime event stream (SSE)";
   const tableMethod = isZh ? "方法" : "Method";
   const tablePath = isZh ? "路径" : "Path";
   const tableDesc = isZh ? "说明" : "Description";
@@ -634,6 +635,7 @@ export function renderHomePageHtml(options: HomePageOptions): string {
               <tr><td>GET</td><td><code>/api/v1/commands</code></td><td>${endpointDescCommands}</td></tr>
               <tr><td>GET</td><td><code>/api/v1/commands/:command</code></td><td>${endpointDescDetail}</td></tr>
               <tr><td>GET</td><td><code>/api/v1/manifest</code></td><td>${endpointDescManifest}</td></tr>
+              <tr><td>GET</td><td><code>/api/v1/events/stream</code></td><td>${endpointDescStream}</td></tr>
               <tr><td>POST</td><td><code>/api/v1/commands/execute</code></td><td>${endpointDescExecute}</td></tr>
             </tbody>
           </table>

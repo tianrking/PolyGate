@@ -8,6 +8,15 @@ import { nodeConfig } from "./config/node.js";
 import { getCommandDetails, listCommandDetails } from "./lib/command-catalog.js";
 import { buildCommandPolicy, isCommandAuthRequired, isCommandDisabled } from "./lib/command-policy.js";
 import { AppError, normalizeError } from "./lib/errors.js";
+import {
+  createCommandExecutionEvent,
+  dispatchWebhookEvent,
+  extractCommandFromPayload,
+  formatSseComment,
+  formatSseEvent,
+  MemoryEventHub,
+  type CommandExecutionEvent,
+} from "./lib/events.js";
 import { renderHomePageHtml, resolveHomeLocale } from "./lib/homepage.js";
 import { PolymarketService } from "./services/polymarket-service.js";
 import { executeCommandPayload } from "./transport/command-execution.js";
@@ -44,6 +53,7 @@ function resolveBaseUrl(request: FastifyRequest): string {
 export async function buildApp(): Promise<FastifyInstance> {
   const service = new PolymarketService(nodeConfig);
   const registry = buildCommandRegistry(service);
+  const eventHub = new MemoryEventHub<CommandExecutionEvent>();
   const policy = buildCommandPolicy(nodeConfig);
   const commandList = listCommands(registry).map((entry) => ({
     ...entry,
@@ -134,6 +144,7 @@ export async function buildApp(): Promise<FastifyInstance> {
         health: "/health",
         listCommands: "/api/v1/commands",
         commandDetails: "/api/v1/commands/:command",
+        streamEvents: "/api/v1/events/stream",
         execute: "/api/v1/commands/execute",
       },
       commands: listCommandDetails(
@@ -148,24 +159,81 @@ export async function buildApp(): Promise<FastifyInstance> {
     },
   }));
 
-  app.post("/api/v1/commands/execute", async (request) => {
-    const { command, data } = await executeCommandPayload(
-      registry,
-      request.body,
-      request.headers,
-      {
-        config: nodeConfig,
-        isCommandDisabled: (name) => isCommandDisabled(policy, name),
-        isAuthRequired: (name, defaultAuthRequired) =>
-          isCommandAuthRequired(policy, name, defaultAuthRequired),
-      },
-    );
+  app.get("/api/v1/events/stream", async (request, reply) => {
+    reply.hijack();
+    reply.raw.writeHead(200, {
+      "content-type": "text/event-stream; charset=utf-8",
+      "cache-control": "no-cache, no-transform",
+      connection: "keep-alive",
+      "x-accel-buffering": "no",
+    });
+    reply.raw.write(formatSseComment("connected"));
 
-    return {
-      success: true,
-      command,
-      data,
+    const unsubscribe = eventHub.subscribe((event) => {
+      reply.raw.write(formatSseEvent("command.execution", event, event.id));
+    });
+
+    const heartbeat = setInterval(() => {
+      reply.raw.write(formatSseComment("heartbeat"));
+    }, nodeConfig.POLYGATE_SSE_HEARTBEAT_MS);
+
+    const cleanup = () => {
+      clearInterval(heartbeat);
+      unsubscribe();
     };
+
+    request.raw.on("close", cleanup);
+  });
+
+  app.post("/api/v1/commands/execute", async (request) => {
+    const startedAt = Date.now();
+    const requestedCommand = extractCommandFromPayload(request.body);
+
+    try {
+      const { command, data } = await executeCommandPayload(
+        registry,
+        request.body,
+        request.headers,
+        {
+          config: nodeConfig,
+          isCommandDisabled: (name) => isCommandDisabled(policy, name),
+          isAuthRequired: (name, defaultAuthRequired) =>
+            isCommandAuthRequired(policy, name, defaultAuthRequired),
+        },
+      );
+
+      const event = createCommandExecutionEvent({
+        command,
+        success: true,
+        durationMs: Date.now() - startedAt,
+        statusCode: 200,
+      });
+      eventHub.publish(event);
+      void dispatchWebhookEvent(nodeConfig, event).catch((error) => {
+        app.log.warn({ error }, "Failed to dispatch webhook event");
+      });
+
+      return {
+        success: true,
+        command,
+        data,
+      };
+    } catch (error) {
+      const appError = normalizeError(error);
+      const event = createCommandExecutionEvent({
+        command: requestedCommand,
+        success: false,
+        durationMs: Date.now() - startedAt,
+        statusCode: appError.statusCode,
+        errorCode: appError.code,
+        errorMessage: appError.message,
+      });
+      eventHub.publish(event);
+      void dispatchWebhookEvent(nodeConfig, event).catch((webhookError) => {
+        app.log.warn({ error: webhookError }, "Failed to dispatch webhook event");
+      });
+      throw appError;
+    }
   });
 
   app.setErrorHandler((error, _request, reply) => {

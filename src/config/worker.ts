@@ -20,6 +20,10 @@ export type WorkerBindings = {
   POLYMARKET_API_KEY_CACHE_TTL_MS?: string;
   POLYGATE_DISABLED_COMMANDS?: string;
   POLYGATE_FORCE_AUTH_COMMANDS?: string;
+  POLYGATE_WEBHOOK_URL?: string;
+  POLYGATE_WEBHOOK_BEARER_TOKEN?: string;
+  POLYGATE_WEBHOOK_TIMEOUT_MS?: string;
+  POLYGATE_SSE_HEARTBEAT_MS?: string;
 };
 
 export function workerConfig(env: WorkerBindings): RuntimeConfig {
