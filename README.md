@@ -17,7 +17,7 @@ Unified HTTP command gateway for Polymarket, designed for both Node.js and Cloud
 7. [Local Development](#local-development)
 8. [Cloudflare Deployment](#cloudflare-deployment)
 9. [Authentication and Wallet Model](#authentication-and-wallet-model)
-10. [Curl Quickstart by Category](#curl-quickstart-by-category)
+10. [Curl Cookbook](#curl-cookbook)
 11. [Security Notes](#security-notes)
 12. [Roadmap](#roadmap)
 13. [References](#references)
@@ -366,128 +366,15 @@ Optional override headers (disabled by default):
 - `x-polymarket-signature-type`
 - `x-polymarket-funder-address`
 
-## Curl Quickstart by Category
+## Curl Cookbook
 
-Set your base URL:
+Detailed command examples are now split into `docs/curl`:
 
-```bash
-export BASE_URL="https://polygate.bkgr.workers.dev"
-```
-
-### Basic checks
-
-```bash
-curl "$BASE_URL/health"
-curl "$BASE_URL/api/v1/commands"
-```
-
-### Market and event data
-
-```bash
-curl -X POST "$BASE_URL/api/v1/commands/execute" \
-  -H 'content-type: application/json' \
-  -d '{"command":"markets.list","params":{"limit":10}}'
-```
-
-```bash
-curl -X POST "$BASE_URL/api/v1/commands/execute" \
-  -H 'content-type: application/json' \
-  -d '{"command":"events.list","params":{"limit":10}}'
-```
-
-```bash
-curl -X POST "$BASE_URL/api/v1/commands/execute" \
-  -H 'content-type: application/json' \
-  -d '{"command":"markets.search","params":{"query":"election","limit":5}}'
-```
-
-### CLOB public
-
-```bash
-curl -X POST "$BASE_URL/api/v1/commands/execute" \
-  -H 'content-type: application/json' \
-  -d '{"command":"clob.book","params":{"tokenId":"123456789"}}'
-```
-
-```bash
-curl -X POST "$BASE_URL/api/v1/commands/execute" \
-  -H 'content-type: application/json' \
-  -d '{"command":"clob.price","params":{"tokenId":"123456789","side":"BUY"}}'
-```
-
-```bash
-curl -X POST "$BASE_URL/api/v1/commands/execute" \
-  -H 'content-type: application/json' \
-  -d '{"command":"clob.currentRewards","params":{}}'
-```
-
-### Data API user analytics
-
-```bash
-curl -X POST "$BASE_URL/api/v1/commands/execute" \
-  -H 'content-type: application/json' \
-  -d '{"command":"data.positions","params":{"address":"0x1111111111111111111111111111111111111111","limit":5}}'
-```
-
-```bash
-curl -X POST "$BASE_URL/api/v1/commands/execute" \
-  -H 'content-type: application/json' \
-  -d '{"command":"data.trades","params":{"address":"0x1111111111111111111111111111111111111111","limit":5}}'
-```
-
-### Approvals and CTF tools
-
-```bash
-curl -X POST "$BASE_URL/api/v1/commands/execute" \
-  -H 'content-type: application/json' \
-  -d '{"command":"approve.check","params":{"address":"0x1111111111111111111111111111111111111111"}}'
-```
-
-```bash
-curl -X POST "$BASE_URL/api/v1/commands/execute" \
-  -H 'content-type: application/json' \
-  -d '{"command":"ctf.conditionId","params":{"oracle":"0x1111111111111111111111111111111111111111","questionId":"0x2222222222222222222222222222222222222222222222222222222222222222","outcomes":2}}'
-```
-
-```bash
-curl -X POST "$BASE_URL/api/v1/commands/execute" \
-  -H 'content-type: application/json' \
-  -d '{"command":"ctf.collectionId","params":{"conditionId":"0xbcee96a610b7f4e61e2947f6510d1a15d4ae7c961a556b014db3527975047a1a","indexSet":"1"}}'
-```
-
-```bash
-curl -X POST "$BASE_URL/api/v1/commands/execute" \
-  -H 'content-type: application/json' \
-  -d '{"command":"ctf.positionId","params":{"collateral":"0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174","collectionId":"0x216b9f584537982f8067c123733a97eddfc439ff709254e16f0a3020ea7fc0e5"}}'
-```
-
-### Authenticated trading examples
-
-These require wallet secrets configured in runtime.
-
-```bash
-curl -X POST "$BASE_URL/api/v1/commands/execute" \
-  -H 'content-type: application/json' \
-  -d '{"command":"wallet.info","params":{}}'
-```
-
-```bash
-curl -X POST "$BASE_URL/api/v1/commands/execute" \
-  -H 'content-type: application/json' \
-  -d '{"command":"clob.orders","params":{}}'
-```
-
-```bash
-curl -X POST "$BASE_URL/api/v1/commands/execute" \
-  -H 'content-type: application/json' \
-  -d '{"command":"clob.createOrder","params":{"tokenID":"123456789","side":"BUY","price":0.42,"size":10,"orderType":"GTC"}}'
-```
-
-```bash
-curl -X POST "$BASE_URL/api/v1/commands/execute" \
-  -H 'content-type: application/json' \
-  -d '{"command":"clob.cancelAll","params":{}}'
-```
+- [Cookbook index](./docs/curl/README.md)
+- [Markets and Data](./docs/curl/markets.md)
+- [CLOB Public Data](./docs/curl/clob.md)
+- [Approve and CTF](./docs/curl/ctf.md)
+- [Trading and Authenticated CLOB](./docs/curl/trading.md)
 
 ## Security Notes
 
@@ -512,7 +399,7 @@ Items:
 - `Implemented`: Approve and CTF execution commands
 - `Implemented`: GitHub Actions Worker deployment flow
 - `In Development`: Expanded integration tests for on-chain write commands
-- `Planned`: Dedicated docs command cookbook split by category
+- `Implemented`: Dedicated docs command cookbook split by category
 - `Planned`: Optional per-command auth policy profiles
 - `Planned`: Pagination helpers and richer typed SDK facade
 - `Planned`: Optional webhook/streaming extension for market events
@@ -524,4 +411,3 @@ Items:
 - [CLOB Quickstart](https://docs.polymarket.com/quickstart/orders/first-order)
 - [Polymarket CLOB TS Client](https://github.com/Polymarket/clob-client)
 - [Cloudflare Workers Docs](https://developers.cloudflare.com/workers/)
-

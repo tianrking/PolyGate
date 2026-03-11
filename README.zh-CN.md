@@ -17,7 +17,7 @@ Polymarket 的统一 HTTP 命令网关，同时支持 Node.js 与 Cloudflare Wor
 7. [本地运行](#本地运行)
 8. [Cloudflare 部署](#cloudflare-部署)
 9. [鉴权与钱包模型](#鉴权与钱包模型)
-10. [Curl 分类示例](#curl-分类示例)
+10. [Curl 手册](#curl-手册)
 11. [安全建议](#安全建议)
 12. [路线图](#路线图)
 
@@ -331,70 +331,15 @@ npm run cf:deploy
 - `x-polymarket-signature-type`
 - `x-polymarket-funder-address`
 
-## Curl 分类示例
+## Curl 手册
 
-设置基础地址：
+分类命令示例已拆分到 `docs/curl`：
 
-```bash
-export BASE_URL="https://polygate.bkgr.workers.dev"
-```
-
-### 基础检查
-
-```bash
-curl "$BASE_URL/health"
-curl "$BASE_URL/api/v1/commands"
-```
-
-### 市场与事件
-
-```bash
-curl -X POST "$BASE_URL/api/v1/commands/execute" \
-  -H 'content-type: application/json' \
-  -d '{"command":"markets.list","params":{"limit":10}}'
-```
-
-```bash
-curl -X POST "$BASE_URL/api/v1/commands/execute" \
-  -H 'content-type: application/json' \
-  -d '{"command":"events.list","params":{"limit":10}}'
-```
-
-### CLOB 公共查询
-
-```bash
-curl -X POST "$BASE_URL/api/v1/commands/execute" \
-  -H 'content-type: application/json' \
-  -d '{"command":"clob.book","params":{"tokenId":"123456789"}}'
-```
-
-### Approve 与 CTF
-
-```bash
-curl -X POST "$BASE_URL/api/v1/commands/execute" \
-  -H 'content-type: application/json' \
-  -d '{"command":"approve.check","params":{"address":"0x1111111111111111111111111111111111111111"}}'
-```
-
-```bash
-curl -X POST "$BASE_URL/api/v1/commands/execute" \
-  -H 'content-type: application/json' \
-  -d '{"command":"ctf.conditionId","params":{"oracle":"0x1111111111111111111111111111111111111111","questionId":"0x2222222222222222222222222222222222222222222222222222222222222222","outcomes":2}}'
-```
-
-### 交易命令（需配置私钥）
-
-```bash
-curl -X POST "$BASE_URL/api/v1/commands/execute" \
-  -H 'content-type: application/json' \
-  -d '{"command":"wallet.info","params":{}}'
-```
-
-```bash
-curl -X POST "$BASE_URL/api/v1/commands/execute" \
-  -H 'content-type: application/json' \
-  -d '{"command":"clob.createOrder","params":{"tokenID":"123456789","side":"BUY","price":0.42,"size":10,"orderType":"GTC"}}'
-```
+- [手册索引](./docs/curl/README.zh-CN.md)
+- [市场与数据](./docs/curl/markets.zh-CN.md)
+- [CLOB 公共查询](./docs/curl/clob.zh-CN.md)
+- [Approve 与 CTF](./docs/curl/ctf.zh-CN.md)
+- [交易与鉴权命令](./docs/curl/trading.zh-CN.md)
 
 ## 安全建议
 
@@ -419,7 +364,6 @@ curl -X POST "$BASE_URL/api/v1/commands/execute" \
 - `Implemented`：Approve 与 CTF 命令
 - `Implemented`：GitHub Actions 自动发版 Worker
 - `In Development`：链上写命令集成测试增强
-- `Planned`：将 Curl 示例拆分到 `docs/` 按类别管理
+- `Implemented`：按类别拆分 Curl 命令手册到 `docs/curl`
 - `Planned`：按命令粒度的鉴权策略模板
 - `Planned`：分页辅助和更强类型化 SDK facade
-
