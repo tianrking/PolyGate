@@ -3,9 +3,15 @@ import {
   Chain,
   ClobClient,
   OrderType,
+  PriceHistoryInterval,
+  Side,
+  type PostOrdersArgs,
   type ApiKeyCreds,
   type BalanceAllowanceParams,
   type OpenOrderParams,
+  type OrderMarketCancelParams,
+  type OrderScoringParams,
+  type OrdersScoringParams,
   type TradeParams,
   type UserMarketOrder,
   type UserOrder,
@@ -39,7 +45,32 @@ type DataWindowParams = {
   offset?: number;
 };
 
+type TagsListParams = {
+  limit?: number;
+  offset?: number;
+  ascending?: boolean;
+  order?: string;
+};
+
+type TeamsListParams = {
+  limit?: number;
+  offset?: number;
+  ascending?: boolean;
+  order?: string;
+  league?: string;
+};
+
+type CommentsListParams = {
+  entityType: "event" | "market" | "series";
+  entityId: string;
+  limit?: number;
+  offset?: number;
+  order?: string;
+  ascending?: boolean;
+};
+
 type AuthHeaders = Record<string, unknown>;
+const BRIDGE_HOST = "https://bridge.polymarket.com/";
 
 export class PolymarketService {
   private readonly apiKeyCache = new Map<string, ApiKeyCacheEntry>();
@@ -242,6 +273,121 @@ export class PolymarketService {
     });
   }
 
+  async tagsList(params: TagsListParams): Promise<unknown> {
+    return requestJson(this.config.POLYMARKET_GAMMA_HOST, "/tags", {
+      timeoutMs: this.config.REQUEST_TIMEOUT_MS,
+      upstreamService: "gamma",
+      query: params,
+    });
+  }
+
+  async tagGet(id: string): Promise<unknown> {
+    const path = /^\d+$/.test(id) ? `/tags/${id}` : `/tags/slug/${id}`;
+
+    return requestJson(this.config.POLYMARKET_GAMMA_HOST, path, {
+      timeoutMs: this.config.REQUEST_TIMEOUT_MS,
+      upstreamService: "gamma",
+    });
+  }
+
+  async tagRelated(id: string, omitEmpty?: boolean): Promise<unknown> {
+    const path = /^\d+$/.test(id) ? `/tags/${id}/related-tags` : `/tags/slug/${id}/related-tags`;
+
+    return requestJson(this.config.POLYMARKET_GAMMA_HOST, path, {
+      timeoutMs: this.config.REQUEST_TIMEOUT_MS,
+      upstreamService: "gamma",
+      query: { omit_empty: omitEmpty },
+    });
+  }
+
+  async tagRelatedTags(id: string, omitEmpty?: boolean): Promise<unknown> {
+    const path = /^\d+$/.test(id) ? `/tags/${id}/related-tags/tags` : `/tags/slug/${id}/related-tags/tags`;
+
+    return requestJson(this.config.POLYMARKET_GAMMA_HOST, path, {
+      timeoutMs: this.config.REQUEST_TIMEOUT_MS,
+      upstreamService: "gamma",
+      query: { omit_empty: omitEmpty },
+    });
+  }
+
+  async seriesList(params: MarketListParams): Promise<unknown> {
+    return requestJson(this.config.POLYMARKET_GAMMA_HOST, "/series", {
+      timeoutMs: this.config.REQUEST_TIMEOUT_MS,
+      upstreamService: "gamma",
+      query: params,
+    });
+  }
+
+  async seriesGet(id: string): Promise<unknown> {
+    return requestJson(this.config.POLYMARKET_GAMMA_HOST, `/series/${id}`, {
+      timeoutMs: this.config.REQUEST_TIMEOUT_MS,
+      upstreamService: "gamma",
+    });
+  }
+
+  async commentsList(params: CommentsListParams): Promise<unknown> {
+    return requestJson(this.config.POLYMARKET_GAMMA_HOST, "/comments", {
+      timeoutMs: this.config.REQUEST_TIMEOUT_MS,
+      upstreamService: "gamma",
+      query: {
+        parent_entity_type: params.entityType,
+        parent_entity_id: params.entityId,
+        limit: params.limit,
+        offset: params.offset,
+        order: params.order,
+        ascending: params.ascending,
+      },
+    });
+  }
+
+  async commentsGet(id: string): Promise<unknown> {
+    return requestJson(this.config.POLYMARKET_GAMMA_HOST, `/comments/${id}`, {
+      timeoutMs: this.config.REQUEST_TIMEOUT_MS,
+      upstreamService: "gamma",
+    });
+  }
+
+  async commentsByUser(address: string, params: DataWindowParams & { order?: string; ascending?: boolean }): Promise<unknown> {
+    return requestJson(this.config.POLYMARKET_GAMMA_HOST, `/comments/user_address/${address}`, {
+      timeoutMs: this.config.REQUEST_TIMEOUT_MS,
+      upstreamService: "gamma",
+      query: params,
+    });
+  }
+
+  async profileGet(address: string): Promise<unknown> {
+    return requestJson(this.config.POLYMARKET_GAMMA_HOST, "/public-profile", {
+      timeoutMs: this.config.REQUEST_TIMEOUT_MS,
+      upstreamService: "gamma",
+      query: { address },
+    });
+  }
+
+  async sportsList(): Promise<unknown> {
+    return requestJson(this.config.POLYMARKET_GAMMA_HOST, "/sports", {
+      timeoutMs: this.config.REQUEST_TIMEOUT_MS,
+      upstreamService: "gamma",
+    });
+  }
+
+  async sportsMarketTypes(): Promise<unknown> {
+    return requestJson(this.config.POLYMARKET_GAMMA_HOST, "/sports/market-types", {
+      timeoutMs: this.config.REQUEST_TIMEOUT_MS,
+      upstreamService: "gamma",
+    });
+  }
+
+  async teamsList(params: TeamsListParams): Promise<unknown> {
+    return requestJson(this.config.POLYMARKET_GAMMA_HOST, "/teams", {
+      timeoutMs: this.config.REQUEST_TIMEOUT_MS,
+      upstreamService: "gamma",
+      query: {
+        ...params,
+        league: params.league ? [params.league] : undefined,
+      },
+    });
+  }
+
   async dataPositions(address: string, params: DataWindowParams): Promise<unknown> {
     return requestJson(this.config.POLYMARKET_DATA_HOST, "/positions", {
       timeoutMs: this.config.REQUEST_TIMEOUT_MS,
@@ -272,6 +418,110 @@ export class PolymarketService {
     });
   }
 
+  async dataClosedPositions(address: string, params: DataWindowParams): Promise<unknown> {
+    return requestJson(this.config.POLYMARKET_DATA_HOST, "/closed-positions", {
+      timeoutMs: this.config.REQUEST_TIMEOUT_MS,
+      upstreamService: "data",
+      query: { user: address, ...params },
+    });
+  }
+
+  async dataTraded(address: string): Promise<unknown> {
+    return requestJson(this.config.POLYMARKET_DATA_HOST, "/traded", {
+      timeoutMs: this.config.REQUEST_TIMEOUT_MS,
+      upstreamService: "data",
+      query: { user: address },
+    });
+  }
+
+  async dataActivity(address: string, params: DataWindowParams): Promise<unknown> {
+    return requestJson(this.config.POLYMARKET_DATA_HOST, "/activity", {
+      timeoutMs: this.config.REQUEST_TIMEOUT_MS,
+      upstreamService: "data",
+      query: { user: address, ...params },
+    });
+  }
+
+  async dataHolders(market: string, limit?: number): Promise<unknown> {
+    return requestJson(this.config.POLYMARKET_DATA_HOST, "/holders", {
+      timeoutMs: this.config.REQUEST_TIMEOUT_MS,
+      upstreamService: "data",
+      query: { markets: [market], limit },
+    });
+  }
+
+  async dataOpenInterest(market: string): Promise<unknown> {
+    return requestJson(this.config.POLYMARKET_DATA_HOST, "/oi", {
+      timeoutMs: this.config.REQUEST_TIMEOUT_MS,
+      upstreamService: "data",
+      query: { markets: [market] },
+    });
+  }
+
+  async dataVolume(id: number): Promise<unknown> {
+    return requestJson(this.config.POLYMARKET_DATA_HOST, "/live-volume", {
+      timeoutMs: this.config.REQUEST_TIMEOUT_MS,
+      upstreamService: "data",
+      query: { id },
+    });
+  }
+
+  async dataLeaderboard(params: DataWindowParams & { period?: string; orderBy?: string }): Promise<unknown> {
+    return requestJson(this.config.POLYMARKET_DATA_HOST, "/v1/leaderboard", {
+      timeoutMs: this.config.REQUEST_TIMEOUT_MS,
+      upstreamService: "data",
+      query: {
+        time_period: params.period,
+        order_by: params.orderBy,
+        limit: params.limit,
+        offset: params.offset,
+      },
+    });
+  }
+
+  async dataBuilderLeaderboard(params: DataWindowParams & { period?: string }): Promise<unknown> {
+    return requestJson(this.config.POLYMARKET_DATA_HOST, "/v1/builders/leaderboard", {
+      timeoutMs: this.config.REQUEST_TIMEOUT_MS,
+      upstreamService: "data",
+      query: {
+        time_period: params.period,
+        limit: params.limit,
+        offset: params.offset,
+      },
+    });
+  }
+
+  async dataBuilderVolume(period?: string): Promise<unknown> {
+    return requestJson(this.config.POLYMARKET_DATA_HOST, "/v1/builders/volume", {
+      timeoutMs: this.config.REQUEST_TIMEOUT_MS,
+      upstreamService: "data",
+      query: { time_period: period },
+    });
+  }
+
+  async bridgeDeposit(address: string): Promise<unknown> {
+    return requestJson(BRIDGE_HOST, "/deposit", {
+      timeoutMs: this.config.REQUEST_TIMEOUT_MS,
+      upstreamService: "bridge",
+      method: "POST",
+      body: { address },
+    });
+  }
+
+  async bridgeSupportedAssets(): Promise<unknown> {
+    return requestJson(BRIDGE_HOST, "/supported-assets", {
+      timeoutMs: this.config.REQUEST_TIMEOUT_MS,
+      upstreamService: "bridge",
+    });
+  }
+
+  async bridgeStatus(address: string): Promise<unknown> {
+    return requestJson(BRIDGE_HOST, `/status/${address}`, {
+      timeoutMs: this.config.REQUEST_TIMEOUT_MS,
+      upstreamService: "bridge",
+    });
+  }
+
   async clobOk(): Promise<unknown> {
     return this.publicClob().getOk();
   }
@@ -280,20 +530,100 @@ export class PolymarketService {
     return this.publicClob().getPrice(tokenId, side);
   }
 
+  async clobPrices(tokenIds: string[], side: "BUY" | "SELL"): Promise<unknown> {
+    return this.publicClob().getPrices(tokenIds.map((token_id) => ({ token_id, side: side as Side })));
+  }
+
   async clobMidpoint(tokenId: string): Promise<unknown> {
     return this.publicClob().getMidpoint(tokenId);
+  }
+
+  async clobMidpoints(tokenIds: string[]): Promise<unknown> {
+    return this.publicClob().getMidpoints(tokenIds.map((token_id) => ({ token_id, side: "BUY" as any })));
+  }
+
+  async clobSpread(tokenId: string): Promise<unknown> {
+    return this.publicClob().getSpread(tokenId);
+  }
+
+  async clobSpreads(tokenIds: string[]): Promise<unknown> {
+    return this.publicClob().getSpreads(tokenIds.map((token_id) => ({ token_id, side: "BUY" as any })));
   }
 
   async clobBook(tokenId: string): Promise<unknown> {
     return this.publicClob().getOrderBook(tokenId);
   }
 
+  async clobBooks(tokenIds: string[]): Promise<unknown> {
+    return this.publicClob().getOrderBooks(tokenIds.map((token_id) => ({ token_id, side: "BUY" as any })));
+  }
+
+  async clobLastTrade(tokenId: string): Promise<unknown> {
+    return this.publicClob().getLastTradePrice(tokenId);
+  }
+
+  async clobLastTrades(tokenIds: string[]): Promise<unknown> {
+    return this.publicClob().getLastTradesPrices(tokenIds.map((token_id) => ({ token_id, side: "BUY" as any })));
+  }
+
   async clobMarket(conditionId: string): Promise<unknown> {
     return this.publicClob().getMarket(conditionId);
   }
 
+  async clobMarketTrades(conditionId: string): Promise<unknown> {
+    return this.publicClob().getMarketTradesEvents(conditionId);
+  }
+
   async clobMarkets(cursor?: string): Promise<unknown> {
     return this.publicClob().getMarkets(cursor);
+  }
+
+  async clobSamplingMarkets(cursor?: string): Promise<unknown> {
+    return this.publicClob().getSamplingMarkets(cursor);
+  }
+
+  async clobSimplifiedMarkets(cursor?: string): Promise<unknown> {
+    return this.publicClob().getSimplifiedMarkets(cursor);
+  }
+
+  async clobSamplingSimplifiedMarkets(cursor?: string): Promise<unknown> {
+    return this.publicClob().getSamplingSimplifiedMarkets(cursor);
+  }
+
+  async clobTickSize(tokenId: string): Promise<unknown> {
+    return this.publicClob().getTickSize(tokenId);
+  }
+
+  async clobFeeRate(tokenId: string): Promise<unknown> {
+    return this.publicClob().getFeeRateBps(tokenId);
+  }
+
+  async clobNegRisk(tokenId: string): Promise<unknown> {
+    return this.publicClob().getNegRisk(tokenId);
+  }
+
+  async clobPriceHistory(tokenId: string, interval?: "1h" | "6h" | "1d" | "1w" | "max", fidelity?: number): Promise<unknown> {
+    const payload: {
+      market: string;
+      fidelity?: number;
+      interval?: PriceHistoryInterval;
+    } = {
+      market: tokenId,
+    };
+
+    if (fidelity !== undefined) {
+      payload.fidelity = fidelity;
+    }
+
+    if (interval !== undefined) {
+      payload.interval = interval as PriceHistoryInterval;
+    }
+
+    return this.publicClob().getPricesHistory(payload);
+  }
+
+  async clobServerTime(): Promise<unknown> {
+    return this.publicClob().getServerTime();
   }
 
   async walletInfo(headers: AuthHeaders): Promise<Record<string, unknown>> {
@@ -330,6 +660,23 @@ export class PolymarketService {
     }
 
     return client.getBalanceAllowance(payload);
+  }
+
+  async clobUpdateBalance(headers: AuthHeaders, params: { assetType: "collateral" | "conditional"; tokenId?: string }): Promise<unknown> {
+    const client = await this.authClob(headers);
+    const payload: BalanceAllowanceParams = {
+      asset_type: params.assetType === "collateral" ? AssetType.COLLATERAL : AssetType.CONDITIONAL,
+    };
+
+    if (params.tokenId) {
+      payload.token_id = params.tokenId;
+    }
+
+    await client.updateBalanceAllowance(payload);
+    return {
+      updated: true,
+      ...payload,
+    };
   }
 
   async clobTrades(headers: AuthHeaders, params: TradeParams): Promise<unknown> {
@@ -376,6 +723,36 @@ export class PolymarketService {
     return client.postOrder(signedOrder, OrderType[orderType], false, postOnly);
   }
 
+  async clobPostOrders(
+    headers: AuthHeaders,
+    payload: {
+      orders: Array<UserOrder & { orderType?: "GTC" | "GTD" | "FOK" | "FAK"; postOnly?: boolean }>;
+      defaultOrderType?: "GTC" | "GTD" | "FOK" | "FAK";
+      deferExec?: boolean;
+      defaultPostOnly?: boolean;
+    },
+  ): Promise<unknown> {
+    const client = await this.authClob(headers);
+    const { orders, defaultOrderType = "GTC", deferExec = false, defaultPostOnly = false } = payload;
+    const args: PostOrdersArgs[] = [];
+
+    for (const { orderType, postOnly, ...order } of orders) {
+      const signedOrder = await client.createOrder(order);
+      const entry: PostOrdersArgs = {
+        order: signedOrder,
+        orderType: OrderType[orderType ?? defaultOrderType],
+      };
+
+      if (postOnly !== undefined) {
+        entry.postOnly = postOnly;
+      }
+
+      args.push(entry);
+    }
+
+    return client.postOrders(args, deferExec, defaultPostOnly);
+  }
+
   async clobCreateMarketOrder(headers: AuthHeaders, payload: UserMarketOrder & { orderType?: "FOK" | "FAK" }): Promise<unknown> {
     const client = await this.authClob(headers);
     const orderType = payload.orderType ?? "FOK";
@@ -388,8 +765,100 @@ export class PolymarketService {
     return client.cancelOrder({ orderID: orderId });
   }
 
+  async clobCancelOrders(headers: AuthHeaders, orderIds: string[]): Promise<unknown> {
+    const client = await this.authClob(headers);
+    return client.cancelOrders(orderIds);
+  }
+
   async clobCancelAll(headers: AuthHeaders): Promise<unknown> {
     const client = await this.authClob(headers);
     return client.cancelAll();
+  }
+
+  async clobCancelMarket(headers: AuthHeaders, payload: OrderMarketCancelParams): Promise<unknown> {
+    const client = await this.authClob(headers);
+    return client.cancelMarketOrders(payload);
+  }
+
+  async clobNotifications(headers: AuthHeaders): Promise<unknown> {
+    const client = await this.authClob(headers);
+    return client.getNotifications();
+  }
+
+  async clobDeleteNotifications(headers: AuthHeaders, ids?: string[]): Promise<unknown> {
+    const client = await this.authClob(headers);
+    await client.dropNotifications(ids && ids.length > 0 ? { ids } : undefined);
+
+    return {
+      deleted: true,
+      ids: ids ?? [],
+      deleteAll: !ids || ids.length === 0,
+    };
+  }
+
+  async clobRewards(headers: AuthHeaders, date: string): Promise<unknown> {
+    const client = await this.authClob(headers);
+    return client.getEarningsForUserForDay(date);
+  }
+
+  async clobEarnings(headers: AuthHeaders, date: string): Promise<unknown> {
+    const client = await this.authClob(headers);
+    return client.getTotalEarningsForUserForDay(date);
+  }
+
+  async clobEarningsMarkets(
+    headers: AuthHeaders,
+    params: { date: string; orderBy?: string; position?: string; noCompetition?: boolean },
+  ): Promise<unknown> {
+    const client = await this.authClob(headers);
+    return client.getUserEarningsAndMarketsConfig(
+      params.date,
+      params.orderBy,
+      params.position,
+      params.noCompetition,
+    );
+  }
+
+  async clobRewardPercentages(headers: AuthHeaders): Promise<unknown> {
+    const client = await this.authClob(headers);
+    return client.getRewardPercentages();
+  }
+
+  async clobCurrentRewards(): Promise<unknown> {
+    return this.publicClob().getCurrentRewards();
+  }
+
+  async clobMarketReward(conditionId: string): Promise<unknown> {
+    return this.publicClob().getRawRewardsForMarket(conditionId);
+  }
+
+  async clobOrderScoring(headers: AuthHeaders, params: OrderScoringParams): Promise<unknown> {
+    const client = await this.authClob(headers);
+    return client.isOrderScoring(params);
+  }
+
+  async clobOrdersScoring(headers: AuthHeaders, params: OrdersScoringParams): Promise<unknown> {
+    const client = await this.authClob(headers);
+    return client.areOrdersScoring(params);
+  }
+
+  async clobApiKeys(headers: AuthHeaders): Promise<unknown> {
+    const client = await this.authClob(headers);
+    return client.getApiKeys();
+  }
+
+  async clobDeleteApiKey(headers: AuthHeaders): Promise<unknown> {
+    const client = await this.authClob(headers);
+    const response = await client.deleteApiKey();
+
+    return {
+      deleted: true,
+      response,
+    };
+  }
+
+  async clobAccountStatus(headers: AuthHeaders): Promise<unknown> {
+    const client = await this.authClob(headers);
+    return client.getClosedOnlyMode();
   }
 }

@@ -49,27 +49,86 @@ Node 侧同样具备对应能力：
   - `events.list`
   - `events.get`
   - `events.tags`
+  - `tags.list`
+  - `tags.get`
+  - `tags.related`
+  - `tags.relatedTags`
+  - `series.list`
+  - `series.get`
+  - `comments.list`
+  - `comments.get`
+  - `comments.byUser`
+  - `profiles.get`
+  - `sports.list`
+  - `sports.marketTypes`
+  - `sports.teams`
 - Data 命令：
   - `data.positions`
   - `data.value`
   - `data.trades`
+  - `data.closedPositions`
+  - `data.traded`
+  - `data.activity`
+  - `data.holders`
+  - `data.openInterest`
+  - `data.volume`
+  - `data.leaderboard`
+  - `data.builderLeaderboard`
+  - `data.builderVolume`
+- Bridge 命令：
+  - `bridge.deposit`
+  - `bridge.supportedAssets`
+  - `bridge.status`
 - CLOB 公共命令：
   - `clob.ok`
   - `clob.price`
+  - `clob.prices`
   - `clob.midpoint`
+  - `clob.midpoints`
+  - `clob.spread`
+  - `clob.spreads`
   - `clob.book`
+  - `clob.books`
+  - `clob.lastTrade`
+  - `clob.lastTrades`
   - `clob.market`
+  - `clob.marketTrades`
   - `clob.markets`
+  - `clob.samplingMarkets`
+  - `clob.simplifiedMarkets`
+  - `clob.samplingSimplifiedMarkets`
+  - `clob.tickSize`
+  - `clob.feeRate`
+  - `clob.negRisk`
+  - `clob.priceHistory`
+  - `clob.time`
+  - `clob.currentRewards`
+  - `clob.marketReward`
 - CLOB 鉴权命令：
   - `clob.orders`
   - `clob.order`
   - `clob.balance`
+  - `clob.updateBalance`
   - `clob.trades`
+  - `clob.notifications`
+  - `clob.deleteNotifications`
+  - `clob.rewards`
+  - `clob.earnings`
+  - `clob.earningsMarkets`
+  - `clob.rewardPercentages`
+  - `clob.orderScoring`
+  - `clob.ordersScoring`
+  - `clob.apiKeys`
   - `clob.createApiKey`
+  - `clob.postOrders`
   - `clob.createOrder`
   - `clob.createMarketOrder`
+  - `clob.cancelOrders`
   - `clob.cancelOrder`
+  - `clob.cancelMarket`
   - `clob.cancelAll`
+  - `clob.deleteApiKey`
+  - `clob.accountStatus`
 - 钱包检查：
   - `wallet.info`
 
@@ -187,6 +246,14 @@ curl http://127.0.0.1:3107/health
 curl http://127.0.0.1:3107/api/v1/commands
 ```
 
+获取标签列表：
+
+```bash
+curl -X POST http://127.0.0.1:3107/api/v1/commands/execute \
+  -H 'content-type: application/json' \
+  -d '{"command":"tags.list","params":{"limit":10}}'
+```
+
 获取市场列表：
 
 ```bash
@@ -201,6 +268,23 @@ curl -X POST http://127.0.0.1:3107/api/v1/commands/execute \
 curl -X POST http://127.0.0.1:3107/api/v1/commands/execute \
   -H 'content-type: application/json' \
   -d '{"command":"clob.book","params":{"tokenId":"123456789"}}'
+```
+
+批量挂多个限价单：
+
+```bash
+curl -X POST http://127.0.0.1:3107/api/v1/commands/execute \
+  -H 'content-type: application/json' \
+  -d '{
+    "command":"clob.postOrders",
+    "params":{
+      "orders":[
+        {"tokenID":"123456789","side":"BUY","price":0.42,"size":10},
+        {"tokenID":"987654321","side":"SELL","price":0.65,"size":5,"postOnly":true}
+      ],
+      "defaultOrderType":"GTC"
+    }
+  }'
 ```
 
 服务端钱包模式下下限价单：
