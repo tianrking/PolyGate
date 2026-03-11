@@ -81,6 +81,17 @@ Node 侧同样具备对应能力：
   - `bridge.deposit`
   - `bridge.supportedAssets`
   - `bridge.status`
+- Approve 命令：
+  - `approve.check`
+  - `approve.set`
+- CTF 命令：
+  - `ctf.conditionId`
+  - `ctf.collectionId`
+  - `ctf.positionId`
+  - `ctf.split`
+  - `ctf.merge`
+  - `ctf.redeem`
+  - `ctf.redeemNegRisk`
 - CLOB 公共命令：
   - `clob.ok`
   - `clob.price`
@@ -417,6 +428,29 @@ curl -X POST http://127.0.0.1:3107/api/v1/commands/execute \
 curl -X POST http://127.0.0.1:3107/api/v1/commands/execute \
   -H 'content-type: application/json' \
   -d '{"command":"clob.book","params":{"tokenId":"123456789"}}'
+```
+
+检查交易授权状态：
+
+```bash
+curl -X POST http://127.0.0.1:3107/api/v1/commands/execute \
+  -H 'content-type: application/json' \
+  -d '{"command":"approve.check","params":{"address":"0x1111111111111111111111111111111111111111"}}'
+```
+
+计算条件 ID：
+
+```bash
+curl -X POST http://127.0.0.1:3107/api/v1/commands/execute \
+  -H 'content-type: application/json' \
+  -d '{
+    "command":"ctf.conditionId",
+    "params":{
+      "oracle":"0x1111111111111111111111111111111111111111",
+      "questionId":"0x2222222222222222222222222222222222222222222222222222222222222222",
+      "outcomes":2
+    }
+  }'
 ```
 
 批量挂多个限价单：

@@ -17,7 +17,9 @@ const sideSchema = z.enum(["BUY", "SELL"]);
 const orderTypeSchema = z.enum(["GTC", "GTD", "FOK", "FAK"]);
 const entityTypeSchema = z.enum(["event", "market", "series"]);
 const csvSchema = z.string().min(1).transform((value) => value.split(",").map((part) => part.trim()).filter(Boolean));
+const csvBigIntSchema = z.string().min(1).transform((value) => value.split(",").map((part) => part.trim()).filter(Boolean).map((part) => BigInt(part)));
 const dateSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "must be YYYY-MM-DD");
+const bytes32Schema = z.string().regex(/^0x[a-fA-F0-9]{64}$/, "must be a 32-byte 0x-prefixed hex string");
 const noopSchema = z.object({}).strict();
 const createOrderSchema = z.object({
   tokenID: z.string().min(1),
@@ -63,6 +65,13 @@ const cancelMarketSchema = z.object({
     });
   }
 });
+const ctfWriteSchema = z.object({
+  conditionId: bytes32Schema,
+  amount: z.union([z.string().min(1), z.number().positive()]),
+  collateral: addressSchema.optional(),
+  partition: csvBigIntSchema.optional(),
+  parentCollectionId: bytes32Schema.optional(),
+}).strict();
 
 type CommandHandler = {
   description: string;
@@ -516,6 +525,79 @@ export function buildCommandRegistry(service: PolymarketService): Record<string,
       authRequired: false,
       schema: noopSchema,
       execute: (_params, headers) => service.walletInfo(headers),
+    },
+    "approve.check": {
+      description: "Check current Polymarket trading approvals",
+      authRequired: false,
+      schema: z.object({ address: addressSchema.optional() }).strict(),
+      execute: ({ address }, headers) => service.approveCheck(headers, address),
+    },
+    "approve.set": {
+      description: "Approve all required Polymarket trading contracts",
+      authRequired: true,
+      schema: noopSchema,
+      execute: (_params, headers) => service.approveSet(headers),
+    },
+    "ctf.conditionId": {
+      description: "Compute a condition ID from oracle, question ID and outcome count",
+      authRequired: false,
+      schema: z.object({
+        oracle: addressSchema,
+        questionId: bytes32Schema,
+        outcomes: z.coerce.number().int().min(2).max(256),
+      }).strict(),
+      execute: ({ oracle, questionId, outcomes }) => service.ctfConditionId(oracle, questionId, outcomes),
+    },
+    "ctf.collectionId": {
+      description: "Compute a collection ID from condition ID and index set",
+      authRequired: false,
+      schema: z.object({
+        conditionId: bytes32Schema,
+        indexSet: z.union([z.string().min(1), z.number().int().positive()]).transform((value) => BigInt(value)),
+        parentCollectionId: bytes32Schema.optional(),
+      }).strict(),
+      execute: ({ conditionId, indexSet, parentCollectionId }) => service.ctfCollectionId(conditionId, indexSet, parentCollectionId),
+    },
+    "ctf.positionId": {
+      description: "Compute a position ID from collateral token and collection ID",
+      authRequired: false,
+      schema: z.object({
+        collateral: addressSchema,
+        collectionId: bytes32Schema,
+      }).strict(),
+      execute: ({ collateral, collectionId }) => service.ctfPositionId(collateral, collectionId),
+    },
+    "ctf.split": {
+      description: "Split collateral into outcome tokens",
+      authRequired: true,
+      schema: ctfWriteSchema,
+      execute: (params, headers) => service.ctfSplit(headers, params),
+    },
+    "ctf.merge": {
+      description: "Merge outcome tokens back into collateral",
+      authRequired: true,
+      schema: ctfWriteSchema,
+      execute: (params, headers) => service.ctfMerge(headers, params),
+    },
+    "ctf.redeem": {
+      description: "Redeem winning tokens after market resolution",
+      authRequired: true,
+      schema: z.object({
+        conditionId: bytes32Schema,
+        collateral: addressSchema.optional(),
+        indexSets: csvBigIntSchema.optional(),
+        parentCollectionId: bytes32Schema.optional(),
+      }).strict(),
+      execute: (params, headers) => service.ctfRedeem(headers, params),
+    },
+    "ctf.redeemNegRisk": {
+      description: "Redeem neg-risk positions through the adapter",
+      authRequired: true,
+      schema: z.object({
+        conditionId: bytes32Schema,
+        amounts: csvSchema,
+      }).strict(),
+      execute: (params, headers) => service.ctfRedeemNegRisk(headers, params),
     },
     "clob.orders": {
       description: "List authenticated open orders",

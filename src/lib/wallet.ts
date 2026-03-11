@@ -37,7 +37,7 @@ function normalizePrivateKey(privateKey: string): Hex {
   return (privateKey.startsWith("0x") ? privateKey : `0x${privateKey}`) as Hex;
 }
 
-function resolveChain(chainId: Chain): typeof polygon | typeof polygonAmoy {
+export function resolveChain(chainId: Chain): typeof polygon | typeof polygonAmoy {
   return chainId === Chain.AMOY ? polygonAmoy : polygon;
 }
 

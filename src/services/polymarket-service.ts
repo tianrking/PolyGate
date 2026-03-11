@@ -16,11 +16,20 @@ import {
   type UserMarketOrder,
   type UserOrder,
 } from "@polymarket/clob-client";
+import { createPublicClient, http, maxUint256, type Address, type Hex, type PublicClient } from "viem";
 
 import type { RuntimeConfig } from "../config/schema.js";
 import { AppError } from "../lib/errors.js";
 import { requestJson } from "../lib/http.js";
-import { resolveWalletContext, type WalletContext } from "../lib/wallet.js";
+import {
+  CONDITIONAL_TOKENS_ABI,
+  ERC20_ABI,
+  defaultBinaryPartition,
+  getPolymarketContracts,
+  NEG_RISK_ADAPTER_ABI,
+  parseUsdcAmount,
+} from "../lib/ctf.js";
+import { resolveChain, resolveWalletContext, type WalletContext } from "../lib/wallet.js";
 
 type ApiKeyCacheEntry = {
   creds: ApiKeyCreds;
@@ -169,6 +178,21 @@ export class PolymarketService {
       undefined,
       true,
     );
+  }
+
+  private publicChainClient(chainId = this.config.POLYMARKET_CHAIN_ID as Chain): PublicClient {
+    return createPublicClient({
+      chain: resolveChain(chainId),
+      transport: http(this.config.POLYMARKET_RPC_URL),
+    });
+  }
+
+  private async walletClients(headers: AuthHeaders): Promise<{ wallet: WalletContext; publicClient: PublicClient }> {
+    const wallet = this.walletContext(headers);
+    return {
+      wallet,
+      publicClient: this.publicChainClient(wallet.chainId),
+    };
   }
 
   async aggregatedStatus(): Promise<Record<string, unknown>> {
@@ -636,6 +660,302 @@ export class PolymarketService {
       address: wallet?.address ?? null,
       funderAddress: wallet?.funderAddress ?? null,
       signatureMode: wallet?.signatureMode ?? null,
+    };
+  }
+
+  async approveCheck(headers: AuthHeaders, address?: Address): Promise<unknown> {
+    const publicClient = this.publicChainClient();
+    const wallet = resolveWalletContext(headers, this.config);
+    const owner = address ?? wallet?.address;
+
+    if (!owner) {
+      throw new AppError("Address is required when no wallet is configured", {
+        statusCode: 400,
+        code: "ADDRESS_REQUIRED",
+      });
+    }
+
+    const contracts = getPolymarketContracts(this.config.POLYMARKET_CHAIN_ID as 137 | 80002);
+    const targets = [
+      { name: "CTF Exchange", address: contracts.exchange },
+      { name: "Neg Risk Exchange", address: contracts.negRiskExchange },
+      { name: "Neg Risk Adapter", address: contracts.negRiskAdapter },
+    ];
+
+    const results = await Promise.all(targets.map(async (target) => {
+      const [usdcAllowanceResult, ctfApprovalResult] = await Promise.allSettled([
+        publicClient.readContract({
+          address: contracts.collateral,
+          abi: ERC20_ABI,
+          functionName: "allowance",
+          args: [owner, target.address],
+        }),
+        publicClient.readContract({
+          address: contracts.conditionalTokens,
+          abi: CONDITIONAL_TOKENS_ABI,
+          functionName: "isApprovedForAll",
+          args: [owner, target.address],
+        }),
+      ]);
+
+      return {
+        contractName: target.name,
+        contractAddress: target.address,
+        usdcAllowance: usdcAllowanceResult.status === "fulfilled" ? usdcAllowanceResult.value.toString() : "0",
+        ctfApproved: ctfApprovalResult.status === "fulfilled" ? ctfApprovalResult.value : false,
+        usdcError: usdcAllowanceResult.status === "rejected"
+          ? (usdcAllowanceResult.reason instanceof Error ? usdcAllowanceResult.reason.message : String(usdcAllowanceResult.reason))
+          : null,
+        ctfError: ctfApprovalResult.status === "rejected"
+          ? (ctfApprovalResult.reason instanceof Error ? ctfApprovalResult.reason.message : String(ctfApprovalResult.reason))
+          : null,
+      };
+    }));
+
+    return {
+      owner,
+      chainId: this.config.POLYMARKET_CHAIN_ID,
+      collateral: contracts.collateral,
+      conditionalTokens: contracts.conditionalTokens,
+      targets: results,
+    };
+  }
+
+  async approveSet(headers: AuthHeaders): Promise<unknown> {
+    const { wallet, publicClient } = await this.walletClients(headers);
+    const contracts = getPolymarketContracts(wallet.chainId as 137 | 80002);
+    const targets = [
+      { name: "CTF Exchange", address: contracts.exchange },
+      { name: "Neg Risk Exchange", address: contracts.negRiskExchange },
+      { name: "Neg Risk Adapter", address: contracts.negRiskAdapter },
+    ];
+    const transactions: Array<Record<string, unknown>> = [];
+    let step = 0;
+
+    for (const target of targets) {
+      step += 1;
+      const approveHash = await wallet.signer.writeContract({
+        chain: resolveChain(wallet.chainId),
+        account: wallet.address,
+        address: contracts.collateral,
+        abi: ERC20_ABI,
+        functionName: "approve",
+        args: [target.address, maxUint256],
+      });
+      const approveReceipt = await publicClient.waitForTransactionReceipt({ hash: approveHash });
+      transactions.push({
+        step,
+        type: "erc20",
+        contract: target.name,
+        spender: target.address,
+        txHash: approveHash,
+        blockNumber: approveReceipt.blockNumber.toString(),
+      });
+
+      step += 1;
+      const setApprovalHash = await wallet.signer.writeContract({
+        chain: resolveChain(wallet.chainId),
+        account: wallet.address,
+        address: contracts.conditionalTokens,
+        abi: CONDITIONAL_TOKENS_ABI,
+        functionName: "setApprovalForAll",
+        args: [target.address, true],
+      });
+      const setApprovalReceipt = await publicClient.waitForTransactionReceipt({ hash: setApprovalHash });
+      transactions.push({
+        step,
+        type: "erc1155",
+        contract: target.name,
+        operator: target.address,
+        txHash: setApprovalHash,
+        blockNumber: setApprovalReceipt.blockNumber.toString(),
+      });
+    }
+
+    return {
+      owner: wallet.address,
+      funderAddress: wallet.funderAddress,
+      chainId: wallet.chainId,
+      transactions,
+    };
+  }
+
+  async ctfConditionId(oracle: Address, questionId: Hex, outcomes: number): Promise<unknown> {
+    const publicClient = this.publicChainClient();
+    const contracts = getPolymarketContracts(this.config.POLYMARKET_CHAIN_ID as 137 | 80002);
+    const conditionId = await publicClient.readContract({
+      address: contracts.conditionalTokens,
+      abi: CONDITIONAL_TOKENS_ABI,
+      functionName: "getConditionId",
+      args: [oracle, questionId, BigInt(outcomes)],
+    });
+
+    return {
+      oracle,
+      questionId,
+      outcomes,
+      conditionId,
+    };
+  }
+
+  async ctfCollectionId(conditionId: Hex, indexSet: bigint, parentCollectionId?: Hex): Promise<unknown> {
+    const parent = parentCollectionId ?? ("0x0000000000000000000000000000000000000000000000000000000000000000" as Hex);
+    const publicClient = this.publicChainClient();
+    const contracts = getPolymarketContracts(this.config.POLYMARKET_CHAIN_ID as 137 | 80002);
+    const collectionId = await publicClient.readContract({
+      address: contracts.conditionalTokens,
+      abi: CONDITIONAL_TOKENS_ABI,
+      functionName: "getCollectionId",
+      args: [parent, conditionId, indexSet],
+    });
+
+    return {
+      parentCollectionId: parent,
+      conditionId,
+      indexSet: indexSet.toString(),
+      collectionId,
+    };
+  }
+
+  async ctfPositionId(collateral: Address, collectionId: Hex): Promise<unknown> {
+    const publicClient = this.publicChainClient();
+    const contracts = getPolymarketContracts(this.config.POLYMARKET_CHAIN_ID as 137 | 80002);
+    const positionId = await publicClient.readContract({
+      address: contracts.conditionalTokens,
+      abi: CONDITIONAL_TOKENS_ABI,
+      functionName: "getPositionId",
+      args: [collateral, collectionId],
+    });
+
+    return {
+      collateral,
+      collectionId,
+      positionId: positionId.toString(),
+    };
+  }
+
+  async ctfSplit(
+    headers: AuthHeaders,
+    params: { conditionId: Hex; amount: string | number; collateral?: Address; partition?: bigint[]; parentCollectionId?: Hex },
+  ): Promise<unknown> {
+    const { wallet, publicClient } = await this.walletClients(headers);
+    const contracts = getPolymarketContracts(wallet.chainId as 137 | 80002);
+    const collateral = params.collateral ?? contracts.collateral;
+    const partition = params.partition ?? defaultBinaryPartition();
+    const parentCollectionId = params.parentCollectionId ?? ("0x0000000000000000000000000000000000000000000000000000000000000000" as Hex);
+    const amount = parseUsdcAmount(params.amount);
+
+    const hash = await wallet.signer.writeContract({
+      chain: resolveChain(wallet.chainId),
+      account: wallet.address,
+      address: contracts.conditionalTokens,
+      abi: CONDITIONAL_TOKENS_ABI,
+      functionName: "splitPosition",
+      args: [collateral, parentCollectionId, params.conditionId, partition, amount],
+    });
+    const receipt = await publicClient.waitForTransactionReceipt({ hash });
+
+    return {
+      action: "split",
+      txHash: hash,
+      blockNumber: receipt.blockNumber.toString(),
+      collateral,
+      conditionId: params.conditionId,
+      parentCollectionId,
+      partition: partition.map((value) => value.toString()),
+      amount: amount.toString(),
+    };
+  }
+
+  async ctfMerge(
+    headers: AuthHeaders,
+    params: { conditionId: Hex; amount: string | number; collateral?: Address; partition?: bigint[]; parentCollectionId?: Hex },
+  ): Promise<unknown> {
+    const { wallet, publicClient } = await this.walletClients(headers);
+    const contracts = getPolymarketContracts(wallet.chainId as 137 | 80002);
+    const collateral = params.collateral ?? contracts.collateral;
+    const partition = params.partition ?? defaultBinaryPartition();
+    const parentCollectionId = params.parentCollectionId ?? ("0x0000000000000000000000000000000000000000000000000000000000000000" as Hex);
+    const amount = parseUsdcAmount(params.amount);
+
+    const hash = await wallet.signer.writeContract({
+      chain: resolveChain(wallet.chainId),
+      account: wallet.address,
+      address: contracts.conditionalTokens,
+      abi: CONDITIONAL_TOKENS_ABI,
+      functionName: "mergePositions",
+      args: [collateral, parentCollectionId, params.conditionId, partition, amount],
+    });
+    const receipt = await publicClient.waitForTransactionReceipt({ hash });
+
+    return {
+      action: "merge",
+      txHash: hash,
+      blockNumber: receipt.blockNumber.toString(),
+      collateral,
+      conditionId: params.conditionId,
+      parentCollectionId,
+      partition: partition.map((value) => value.toString()),
+      amount: amount.toString(),
+    };
+  }
+
+  async ctfRedeem(
+    headers: AuthHeaders,
+    params: { conditionId: Hex; collateral?: Address; indexSets?: bigint[]; parentCollectionId?: Hex },
+  ): Promise<unknown> {
+    const { wallet, publicClient } = await this.walletClients(headers);
+    const contracts = getPolymarketContracts(wallet.chainId as 137 | 80002);
+    const collateral = params.collateral ?? contracts.collateral;
+    const indexSets = params.indexSets ?? defaultBinaryPartition();
+    const parentCollectionId = params.parentCollectionId ?? ("0x0000000000000000000000000000000000000000000000000000000000000000" as Hex);
+
+    const hash = await wallet.signer.writeContract({
+      chain: resolveChain(wallet.chainId),
+      account: wallet.address,
+      address: contracts.conditionalTokens,
+      abi: CONDITIONAL_TOKENS_ABI,
+      functionName: "redeemPositions",
+      args: [collateral, parentCollectionId, params.conditionId, indexSets],
+    });
+    const receipt = await publicClient.waitForTransactionReceipt({ hash });
+
+    return {
+      action: "redeem",
+      txHash: hash,
+      blockNumber: receipt.blockNumber.toString(),
+      collateral,
+      conditionId: params.conditionId,
+      parentCollectionId,
+      indexSets: indexSets.map((value) => value.toString()),
+    };
+  }
+
+  async ctfRedeemNegRisk(
+    headers: AuthHeaders,
+    params: { conditionId: Hex; amounts: string[] },
+  ): Promise<unknown> {
+    const { wallet, publicClient } = await this.walletClients(headers);
+    const contracts = getPolymarketContracts(wallet.chainId as 137 | 80002);
+    const amounts = params.amounts.map((value) => parseUsdcAmount(value));
+
+    const hash = await wallet.signer.writeContract({
+      chain: resolveChain(wallet.chainId),
+      account: wallet.address,
+      address: contracts.negRiskAdapter,
+      abi: NEG_RISK_ADAPTER_ABI,
+      functionName: "redeemPositions",
+      args: [params.conditionId, amounts],
+    });
+    const receipt = await publicClient.waitForTransactionReceipt({ hash });
+
+    return {
+      action: "redeem-neg-risk",
+      txHash: hash,
+      blockNumber: receipt.blockNumber.toString(),
+      adapter: contracts.negRiskAdapter,
+      conditionId: params.conditionId,
+      amounts: amounts.map((value) => value.toString()),
     };
   }
 

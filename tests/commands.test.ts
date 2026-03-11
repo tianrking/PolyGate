@@ -32,12 +32,16 @@ describe("command registry", () => {
     expect(commands.has("tags.list")).toBe(true);
     expect(commands.has("sports.teams")).toBe(true);
     expect(commands.has("bridge.supportedAssets")).toBe(true);
+    expect(commands.has("approve.check")).toBe(true);
+    expect(commands.has("approve.set")).toBe(true);
+    expect(commands.has("ctf.conditionId")).toBe(true);
+    expect(commands.has("ctf.redeemNegRisk")).toBe(true);
     expect(commands.has("clob.prices")).toBe(true);
     expect(commands.has("clob.marketTrades")).toBe(true);
     expect(commands.has("clob.postOrders")).toBe(true);
     expect(commands.has("clob.notifications")).toBe(true);
     expect(commands.has("clob.currentRewards")).toBe(true);
     expect(commands.has("clob.accountStatus")).toBe(true);
-    expect(commands.size).toBeGreaterThanOrEqual(55);
+    expect(commands.size).toBeGreaterThanOrEqual(65);
   });
 });
