@@ -22,6 +22,8 @@ const config: RuntimeConfig = {
   POLYMARKET_SIGNATURE_TYPE: "proxy",
   POLYMARKET_ALLOW_PRIVATE_KEY_OVERRIDE: false,
   POLYMARKET_API_KEY_CACHE_TTL_MS: 300000,
+  POLYGATE_DISABLED_COMMANDS: [],
+  POLYGATE_FORCE_AUTH_COMMANDS: [],
 };
 
 describe("command registry", () => {

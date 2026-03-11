@@ -47,6 +47,7 @@ This project is not a thin shell around CLI output. It provides:
 - Health endpoint: `GET /health`
 - Human-friendly homepage: `GET /`
 - Interactive homepage console for command selection, parameter editing, and live execution
+- Optional per-command policy controls (`POLYGATE_DISABLED_COMMANDS`, `POLYGATE_FORCE_AUTH_COMMANDS`)
 - Public data support across Gamma, Data API, CLOB public endpoints, and Bridge
 - Authenticated trading and account commands through `@polymarket/clob-client`
 - On-chain approval and CTF command support via `viem`
@@ -61,7 +62,8 @@ This project is not a thin shell around CLI output. It provides:
 - `CLOB Authenticated Trading Commands`: Implemented
 - `Approve + CTF Commands`: Implemented
 - `Automated Workers Deploy (GitHub Actions)`: Implemented
-- `Dedicated docs/ command cookbook`: Planned
+- `Dedicated docs/ command cookbook`: Implemented
+- `Per-command auth policy profiles`: Implemented
 
 ## Architecture
 
@@ -231,7 +233,8 @@ Response shape:
     {
       "command": "markets.list",
       "description": "List Gamma markets",
-      "authRequired": false
+      "authRequired": false,
+      "enabled": true
     }
   ]
 }
@@ -244,6 +247,7 @@ Response shape:
 Returns one command with:
 
 - auth requirement
+- enabled/disabled state under policy
 - request params JSON schema
 - generated params example
 - generated curl example
@@ -387,6 +391,8 @@ Relevant env vars:
 - `POLYMARKET_FUNDER_ADDRESS`
 - `POLYMARKET_SIGNATURE_TYPE` (`eoa`, `proxy`, `gnosis-safe`)
 - `POLYMARKET_ALLOW_PRIVATE_KEY_OVERRIDE` (`false` by default)
+- `POLYGATE_DISABLED_COMMANDS` (comma-separated command blocklist)
+- `POLYGATE_FORCE_AUTH_COMMANDS` (comma-separated commands that must have wallet context)
 
 Optional override headers (disabled by default):
 
@@ -428,7 +434,7 @@ Items:
 - `Implemented`: GitHub Actions Worker deployment flow
 - `In Development`: Expanded integration tests for on-chain write commands
 - `Implemented`: Dedicated docs command cookbook split by category
-- `Planned`: Optional per-command auth policy profiles
+- `Implemented`: Optional per-command auth policy profiles
 - `Planned`: Pagination helpers and richer typed SDK facade
 - `Planned`: Optional webhook/streaming extension for market events
 

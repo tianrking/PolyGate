@@ -214,12 +214,15 @@ export function renderHomePageHtml(options: HomePageOptions): string {
       reset: isZh ? "恢复模板" : "Reset Template",
       result: isZh ? "执行结果" : "Execution Result",
       curl: isZh ? "参考 curl" : "Reference curl",
+      authTag: isZh ? "[鉴权]" : "[auth]",
+      disabledTag: isZh ? "[禁用]" : "[disabled]",
       statusReady: isZh ? "就绪" : "Ready",
       statusLoadingCommands: isZh ? "加载命令列表中..." : "Loading command list...",
       statusLoadingDetail: isZh ? "加载命令模板中..." : "Loading command template...",
       statusExecuting: isZh ? "请求执行中..." : "Executing request...",
       statusDone: isZh ? "请求完成" : "Request completed",
       statusError: isZh ? "请求失败" : "Request failed",
+      statusDisabled: isZh ? "当前命令被策略禁用" : "This command is disabled by policy",
       invalidJson: isZh ? "参数 JSON 解析失败，请修正后重试。" : "Invalid JSON parameters. Fix the payload and retry.",
       unknownError: isZh ? "未知错误" : "Unknown error",
       selectPlaceholder: isZh ? "请选择命令" : "Select command",
@@ -399,6 +402,10 @@ export function renderHomePageHtml(options: HomePageOptions): string {
       }
       button:hover {
         background: #e6f0ff;
+      }
+      button:disabled {
+        cursor: not-allowed;
+        opacity: 0.6;
       }
       a { color: var(--accent); text-decoration: none; }
       a:hover { text-decoration: underline; }
@@ -609,7 +616,9 @@ export function renderHomePageHtml(options: HomePageOptions): string {
         activeCurl = payload.data.curlExample || "";
         if (paramsInput) paramsInput.value = activeTemplate;
         if (curlBox) curlBox.textContent = activeCurl;
-        setStatus(labels.statusReady, "muted");
+        const isEnabled = payload?.data?.enabled !== false;
+        if (runButton) runButton.disabled = !isEnabled;
+        setStatus(isEnabled ? labels.statusReady : labels.statusDisabled, isEnabled ? "muted" : "error");
       }
 
       async function loadCommands() {
@@ -637,7 +646,10 @@ export function renderHomePageHtml(options: HomePageOptions): string {
         for (const item of items) {
           const option = document.createElement("option");
           option.value = item.command;
-          option.textContent = item.command + (item.authRequired ? " [auth]" : "");
+          const flags = [];
+          if (item.authRequired) flags.push(labels.authTag);
+          if (item.enabled === false) flags.push(labels.disabledTag);
+          option.textContent = item.command + (flags.length ? " " + flags.join(" ") : "");
           commandSelect.appendChild(option);
         }
 

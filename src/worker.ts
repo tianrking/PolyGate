@@ -4,14 +4,26 @@ import { cors } from "hono/cors";
 import { buildCommandRegistry, listCommands } from "./commands.js";
 import { workerConfig, type WorkerBindings } from "./config/worker.js";
 import { getCommandDetails, listCommandDetails } from "./lib/command-catalog.js";
+import { buildCommandPolicy, isCommandAuthRequired, isCommandDisabled } from "./lib/command-policy.js";
 import { AppError, normalizeError } from "./lib/errors.js";
 import { renderHomePageHtml, resolveHomeLocale } from "./lib/homepage.js";
 import { PolymarketService } from "./services/polymarket-service.js";
 import { executeCommandPayload } from "./transport/command-execution.js";
+import type { RuntimeConfig } from "./config/schema.js";
+import type { CommandPolicy } from "./lib/command-policy.js";
 
 type RuntimeBundle = {
+  config: RuntimeConfig;
+  policy: CommandPolicy;
   service: PolymarketService;
   registry: ReturnType<typeof buildCommandRegistry>;
+  commandList: Array<{
+    command: string;
+    description: string;
+    authRequired: boolean;
+    enabled: boolean;
+  }>;
+  enabledCommandCount: number;
 };
 
 const runtimeCache = new WeakMap<object, RuntimeBundle>();
@@ -23,9 +35,24 @@ function getRuntime(env: WorkerBindings): RuntimeBundle {
     return cached;
   }
 
-  const service = new PolymarketService(workerConfig(env));
+  const config = workerConfig(env);
+  const policy = buildCommandPolicy(config);
+  const service = new PolymarketService(config);
   const registry = buildCommandRegistry(service);
-  const bundle = { service, registry };
+  const commandList = listCommands(registry).map((entry) => ({
+    ...entry,
+    authRequired: isCommandAuthRequired(policy, entry.command, entry.authRequired),
+    enabled: !isCommandDisabled(policy, entry.command),
+  }));
+  const enabledCommandCount = commandList.filter((entry) => entry.enabled).length;
+  const bundle = {
+    config,
+    policy,
+    service,
+    registry,
+    commandList,
+    enabledCommandCount,
+  };
 
   runtimeCache.set(env as object, bundle);
   return bundle;
@@ -53,8 +80,7 @@ app.get("/health", (c) =>
 );
 
 app.get("/", (c) => {
-  const { registry } = getRuntime(c.env);
-  const commandList = listCommands(registry);
+  const { enabledCommandCount } = getRuntime(c.env);
   const requestUrl = new URL(c.req.url);
   const locale = resolveHomeLocale(
     requestUrl.searchParams.get("lang"),
@@ -62,7 +88,7 @@ app.get("/", (c) => {
   );
   const html = renderHomePageHtml({
     runtime: "cloudflare-workers",
-    commandCount: commandList.length,
+    commandCount: enabledCommandCount,
     locale,
     baseUrl: requestUrl.origin,
   });
@@ -71,8 +97,7 @@ app.get("/", (c) => {
 });
 
 app.get("/api/v1/commands", (c) => {
-  const { registry } = getRuntime(c.env);
-  const commandList = listCommands(registry);
+  const { commandList } = getRuntime(c.env);
 
   return c.json({
     success: true,
@@ -81,10 +106,19 @@ app.get("/api/v1/commands", (c) => {
 });
 
 app.get("/api/v1/commands/:command", (c) => {
-  const { registry } = getRuntime(c.env);
+  const { registry, policy } = getRuntime(c.env);
   const command = c.req.param("command");
   const baseUrl = new URL(c.req.url).origin;
-  const details = getCommandDetails(registry, command, baseUrl);
+  const details = getCommandDetails(
+    registry,
+    command,
+    baseUrl,
+    {
+      resolveAuthRequired: (name, defaultAuthRequired) =>
+        isCommandAuthRequired(policy, name, defaultAuthRequired),
+      resolveEnabled: (name) => !isCommandDisabled(policy, name),
+    },
+  );
 
   if (!details) {
     throw new AppError(`Unsupported command: ${command}`, {
@@ -100,7 +134,7 @@ app.get("/api/v1/commands/:command", (c) => {
 });
 
 app.get("/api/v1/manifest", (c) => {
-  const { registry } = getRuntime(c.env);
+  const { registry, policy } = getRuntime(c.env);
   const baseUrl = new URL(c.req.url).origin;
 
   return c.json({
@@ -115,16 +149,30 @@ app.get("/api/v1/manifest", (c) => {
         commandDetails: "/api/v1/commands/:command",
         execute: "/api/v1/commands/execute",
       },
-      commands: listCommandDetails(registry, baseUrl),
+      commands: listCommandDetails(registry, baseUrl, {
+        resolveAuthRequired: (name, defaultAuthRequired) =>
+          isCommandAuthRequired(policy, name, defaultAuthRequired),
+        resolveEnabled: (name) => !isCommandDisabled(policy, name),
+      }),
     },
   });
 });
 
 app.post("/api/v1/commands/execute", async (c) => {
-  const { registry } = getRuntime(c.env);
+  const { registry, config, policy } = getRuntime(c.env);
   const payload = await c.req.json().catch(() => ({}));
   const headers = Object.fromEntries(c.req.raw.headers.entries());
-  const { command, data } = await executeCommandPayload(registry, payload, headers);
+  const { command, data } = await executeCommandPayload(
+    registry,
+    payload,
+    headers,
+    {
+      config,
+      isCommandDisabled: (name) => isCommandDisabled(policy, name),
+      isAuthRequired: (name, defaultAuthRequired) =>
+        isCommandAuthRequired(policy, name, defaultAuthRequired),
+    },
+  );
 
   return c.json({
     success: true,

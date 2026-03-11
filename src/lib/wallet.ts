@@ -37,6 +37,44 @@ function normalizePrivateKey(privateKey: string): Hex {
   return (privateKey.startsWith("0x") ? privateKey : `0x${privateKey}`) as Hex;
 }
 
+type WalletHeaderOverrides = {
+  privateKey: string | undefined;
+  funderAddress: string | undefined;
+  signatureMode: string | undefined;
+};
+
+function readWalletHeaderOverrides(headers: Record<string, unknown>): WalletHeaderOverrides {
+  const overridePrivateKeyHeader = headers["x-polymarket-private-key"];
+  const overrideFunderHeader = headers["x-polymarket-funder-address"];
+  const overrideSignatureHeader = headers["x-polymarket-signature-type"];
+
+  return {
+    privateKey: typeof overridePrivateKeyHeader === "string" ? overridePrivateKeyHeader : undefined,
+    funderAddress: typeof overrideFunderHeader === "string" ? overrideFunderHeader : undefined,
+    signatureMode: typeof overrideSignatureHeader === "string" ? overrideSignatureHeader : undefined,
+  };
+}
+
+function resolveRequestPrivateKey(
+  overridePrivateKey: string | undefined,
+  config: RuntimeConfig,
+): string | undefined {
+  if (overridePrivateKey && !config.POLYMARKET_ALLOW_PRIVATE_KEY_OVERRIDE) {
+    throw new AppError("Private key override is disabled on this server", {
+      statusCode: 403,
+      code: "PRIVATE_KEY_OVERRIDE_DISABLED",
+    });
+  }
+
+  return overridePrivateKey ?? config.POLYMARKET_PRIVATE_KEY;
+}
+
+export function hasWalletCredentials(headers: Record<string, unknown>, config: RuntimeConfig): boolean {
+  const overrides = readWalletHeaderOverrides(headers);
+  const privateKey = resolveRequestPrivateKey(overrides.privateKey, config);
+  return Boolean(privateKey);
+}
+
 export function resolveChain(chainId: Chain): typeof polygon | typeof polygonAmoy {
   return chainId === Chain.AMOY ? polygonAmoy : polygon;
 }
@@ -102,28 +140,14 @@ function defaultFunderAddress(address: Address, chainId: Chain, mode: SignatureM
 }
 
 export function resolveWalletContext(headers: Record<string, unknown>, config: RuntimeConfig): WalletContext | null {
-  const overridePrivateKeyHeader = headers["x-polymarket-private-key"];
-  const overrideFunderHeader = headers["x-polymarket-funder-address"];
-  const overrideSignatureHeader = headers["x-polymarket-signature-type"];
-
-  const overridePrivateKey = typeof overridePrivateKeyHeader === "string" ? overridePrivateKeyHeader : undefined;
-  const overrideFunderAddress = typeof overrideFunderHeader === "string" ? overrideFunderHeader : undefined;
-  const overrideSignatureMode = typeof overrideSignatureHeader === "string" ? overrideSignatureHeader : undefined;
-
-  if (overridePrivateKey && !config.POLYMARKET_ALLOW_PRIVATE_KEY_OVERRIDE) {
-    throw new AppError("Private key override is disabled on this server", {
-      statusCode: 403,
-      code: "PRIVATE_KEY_OVERRIDE_DISABLED",
-    });
-  }
-
-  const privateKey = overridePrivateKey ?? config.POLYMARKET_PRIVATE_KEY;
+  const overrides = readWalletHeaderOverrides(headers);
+  const privateKey = resolveRequestPrivateKey(overrides.privateKey, config);
 
   if (!privateKey) {
     return null;
   }
 
-  const signatureModeValue = overrideSignatureMode ?? config.POLYMARKET_SIGNATURE_TYPE;
+  const signatureModeValue = overrides.signatureMode ?? config.POLYMARKET_SIGNATURE_TYPE;
 
   if (
     signatureModeValue !== "eoa" &&
@@ -146,7 +170,7 @@ export function resolveWalletContext(headers: Record<string, unknown>, config: R
   });
   const address = getAddress(account.address);
   const funderAddress = getAddress(
-    overrideFunderAddress ?? config.POLYMARKET_FUNDER_ADDRESS ?? defaultFunderAddress(address, chainId, signatureMode),
+    overrides.funderAddress ?? config.POLYMARKET_FUNDER_ADDRESS ?? defaultFunderAddress(address, chainId, signatureMode),
   );
 
   return {

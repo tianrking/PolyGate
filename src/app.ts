@@ -6,6 +6,7 @@ import Fastify, { type FastifyInstance, type FastifyRequest } from "fastify";
 import { buildCommandRegistry, listCommands } from "./commands.js";
 import { nodeConfig } from "./config/node.js";
 import { getCommandDetails, listCommandDetails } from "./lib/command-catalog.js";
+import { buildCommandPolicy, isCommandAuthRequired, isCommandDisabled } from "./lib/command-policy.js";
 import { AppError, normalizeError } from "./lib/errors.js";
 import { renderHomePageHtml, resolveHomeLocale } from "./lib/homepage.js";
 import { PolymarketService } from "./services/polymarket-service.js";
@@ -43,7 +44,13 @@ function resolveBaseUrl(request: FastifyRequest): string {
 export async function buildApp(): Promise<FastifyInstance> {
   const service = new PolymarketService(nodeConfig);
   const registry = buildCommandRegistry(service);
-  const commandList = listCommands(registry);
+  const policy = buildCommandPolicy(nodeConfig);
+  const commandList = listCommands(registry).map((entry) => ({
+    ...entry,
+    authRequired: isCommandAuthRequired(policy, entry.command, entry.authRequired),
+    enabled: !isCommandDisabled(policy, entry.command),
+  }));
+  const enabledCommandCount = commandList.filter((entry) => entry.enabled).length;
   const app = Fastify({
     logger: {
       level: nodeConfig.LOG_LEVEL,
@@ -75,7 +82,7 @@ export async function buildApp(): Promise<FastifyInstance> {
     reply.type("text/html; charset=utf-8");
     return renderHomePageHtml({
       runtime: "nodejs",
-      commandCount: commandList.length,
+      commandCount: enabledCommandCount,
       locale: resolveHomeLocale(queryLang, acceptLanguage),
       baseUrl,
     });
@@ -93,7 +100,16 @@ export async function buildApp(): Promise<FastifyInstance> {
 
   app.get("/api/v1/commands/:command", async (request) => {
     const { command } = request.params as { command: string };
-    const details = getCommandDetails(registry, command, resolveBaseUrl(request));
+    const details = getCommandDetails(
+      registry,
+      command,
+      resolveBaseUrl(request),
+      {
+        resolveAuthRequired: (name, defaultAuthRequired) =>
+          isCommandAuthRequired(policy, name, defaultAuthRequired),
+        resolveEnabled: (name) => !isCommandDisabled(policy, name),
+      },
+    );
 
     if (!details) {
       throw new AppError(`Unsupported command: ${command}`, {
@@ -120,7 +136,15 @@ export async function buildApp(): Promise<FastifyInstance> {
         commandDetails: "/api/v1/commands/:command",
         execute: "/api/v1/commands/execute",
       },
-      commands: listCommandDetails(registry, resolveBaseUrl(request)),
+      commands: listCommandDetails(
+        registry,
+        resolveBaseUrl(request),
+        {
+          resolveAuthRequired: (name, defaultAuthRequired) =>
+            isCommandAuthRequired(policy, name, defaultAuthRequired),
+          resolveEnabled: (name) => !isCommandDisabled(policy, name),
+        },
+      ),
     },
   }));
 
@@ -129,6 +153,12 @@ export async function buildApp(): Promise<FastifyInstance> {
       registry,
       request.body,
       request.headers,
+      {
+        config: nodeConfig,
+        isCommandDisabled: (name) => isCommandDisabled(policy, name),
+        isAuthRequired: (name, defaultAuthRequired) =>
+          isCommandAuthRequired(policy, name, defaultAuthRequired),
+      },
     );
 
     return {

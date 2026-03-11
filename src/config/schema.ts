@@ -11,6 +11,16 @@ const booleanish = z
     return ["1", "true", "yes", "on"].includes(value.toLowerCase());
   });
 
+const csvList = z
+  .string()
+  .default("")
+  .transform((value) =>
+    value
+      .split(",")
+      .map((item) => item.trim())
+      .filter(Boolean),
+  );
+
 const addressSchema = z.string().refine((value) => isAddress(value), {
   message: "must be a valid EVM address",
 });
@@ -42,6 +52,8 @@ export const runtimeConfigSchema = z.object({
   POLYMARKET_SIGNATURE_TYPE: z.enum(["eoa", "proxy", "gnosis-safe"]).default("proxy"),
   POLYMARKET_ALLOW_PRIVATE_KEY_OVERRIDE: booleanish.default(false),
   POLYMARKET_API_KEY_CACHE_TTL_MS: z.coerce.number().int().min(1000).max(3600000).default(300000),
+  POLYGATE_DISABLED_COMMANDS: csvList,
+  POLYGATE_FORCE_AUTH_COMMANDS: csvList,
 });
 
 export type RuntimeConfig = z.infer<typeof runtimeConfigSchema>;

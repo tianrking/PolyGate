@@ -23,6 +23,8 @@ const config: RuntimeConfig = {
   POLYMARKET_SIGNATURE_TYPE: "proxy",
   POLYMARKET_ALLOW_PRIVATE_KEY_OVERRIDE: false,
   POLYMARKET_API_KEY_CACHE_TTL_MS: 300000,
+  POLYGATE_DISABLED_COMMANDS: [],
+  POLYGATE_FORCE_AUTH_COMMANDS: [],
 };
 
 describe("command catalog", () => {
@@ -33,6 +35,7 @@ describe("command catalog", () => {
 
     expect(marketsList).toBeDefined();
     expect(marketsList?.paramsSchema.type).toBe("object");
+    expect(marketsList?.enabled).toBe(true);
     expect(marketsList?.paramsExample).toMatchObject({ limit: 1, offset: 1 });
     expect(marketsList?.curlExample).toContain("https://polygate.bkgr.workers.dev/api/v1/commands/execute");
     expect(marketsList?.curlExample).toContain("\"markets.list\"");
@@ -44,7 +47,24 @@ describe("command catalog", () => {
     const missingDetails = getCommandDetails(registry, "does.not.exist", "http://127.0.0.1:3107");
 
     expect(statusDetails?.command).toBe("status");
+    expect(statusDetails?.enabled).toBe(true);
     expect(statusDetails?.paramsExample).toEqual({});
     expect(missingDetails).toBeUndefined();
+  });
+
+  it("applies auth and enabled overrides in command metadata", () => {
+    const registry = buildCommandRegistry(new PolymarketService(config));
+    const details = getCommandDetails(
+      registry,
+      "markets.list",
+      "http://127.0.0.1:3107",
+      {
+        resolveAuthRequired: () => true,
+        resolveEnabled: () => false,
+      },
+    );
+
+    expect(details?.authRequired).toBe(true);
+    expect(details?.enabled).toBe(false);
   });
 });

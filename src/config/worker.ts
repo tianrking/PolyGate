@@ -18,6 +18,8 @@ export type WorkerBindings = {
   POLYMARKET_SIGNATURE_TYPE?: string;
   POLYMARKET_ALLOW_PRIVATE_KEY_OVERRIDE?: string;
   POLYMARKET_API_KEY_CACHE_TTL_MS?: string;
+  POLYGATE_DISABLED_COMMANDS?: string;
+  POLYGATE_FORCE_AUTH_COMMANDS?: string;
 };
 
 export function workerConfig(env: WorkerBindings): RuntimeConfig {

@@ -24,9 +24,18 @@ export type CommandDetails = {
   command: CommandName;
   description: string;
   authRequired: boolean;
+  enabled: boolean;
   paramsSchema: JsonSchema;
   paramsExample: unknown;
   curlExample: string;
+};
+
+export type CommandCatalogOptions = {
+  resolveAuthRequired?: (
+    command: CommandName,
+    defaultAuthRequired: boolean,
+  ) => boolean;
+  resolveEnabled?: (command: CommandName) => boolean;
 };
 
 function normalizeBaseUrl(baseUrl: string): string {
@@ -189,16 +198,27 @@ function safeToJsonSchema(schema: z.ZodTypeAny): JsonSchema {
   }
 }
 
-function toCommandDetails(baseUrl: string, command: string, definition: CommandRegistry[CommandName]): CommandDetails {
+function toCommandDetails(
+  baseUrl: string,
+  command: string,
+  definition: CommandRegistry[CommandName],
+  options?: CommandCatalogOptions,
+): CommandDetails {
   const paramsSchema = safeToJsonSchema(definition.schema);
   const paramsExample = buildExampleFromJsonSchema(paramsSchema);
   const normalizedBaseUrl = normalizeBaseUrl(baseUrl);
   const commandName = command as CommandName;
+  const authRequired = options?.resolveAuthRequired?.(
+    commandName,
+    definition.authRequired,
+  ) ?? definition.authRequired;
+  const enabled = options?.resolveEnabled?.(commandName) ?? true;
 
   return {
     command: commandName,
     description: definition.description,
-    authRequired: definition.authRequired,
+    authRequired,
+    enabled,
     paramsSchema,
     paramsExample,
     curlExample: buildCurlExample(normalizedBaseUrl, command, paramsExample),
@@ -208,9 +228,10 @@ function toCommandDetails(baseUrl: string, command: string, definition: CommandR
 export function listCommandDetails(
   registry: CommandRegistry,
   baseUrl: string,
+  options?: CommandCatalogOptions,
 ): CommandDetails[] {
   return Object.entries(registry).map(([command, definition]) =>
-    toCommandDetails(baseUrl, command, definition),
+    toCommandDetails(baseUrl, command, definition, options),
   );
 }
 
@@ -218,11 +239,12 @@ export function getCommandDetails(
   registry: CommandRegistry,
   command: string,
   baseUrl: string,
+  options?: CommandCatalogOptions,
 ): CommandDetails | undefined {
   const definition = registry[command as CommandName];
   if (!definition) {
     return undefined;
   }
 
-  return toCommandDetails(baseUrl, command, definition);
+  return toCommandDetails(baseUrl, command, definition, options);
 }
